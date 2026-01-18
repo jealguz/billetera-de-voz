@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, CheckCircle, Trash2, RotateCcw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Mic, CheckCircle } from 'lucide-react';
 import { enhancedVoiceService } from '../services/enhancedVoiceService';
 
 interface VoiceRegistrationProps {
@@ -9,155 +9,22 @@ interface VoiceRegistrationProps {
 }
 
 const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegistered, onSkip }) => {
-  const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const [recordedVoice, setRecordedVoice] = useState<string | null>(null);
-  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    return () => {
-      // Cleanup: stop recording if component unmounts
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-      }
-    };
-  }, [mediaRecorder]);
-
-  const startRecording = async () => {
+  const startListening = async () => {
     try {
-      setIsRecording(true);
+      setIsListening(true);
       setError(null);
-
-      // Start speech recognition first (this is more important)
-      const transcriptPromise = enhancedVoiceService.startListening();
-
-      let recorder: MediaRecorder | null = null;
-      let stream: MediaStream | null = null;
-
-      try {
-        // Try to get audio stream for recording
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        recorder = new MediaRecorder(stream);
-        setMediaRecorder(recorder);
-
-        const audioChunks: Blob[] = [];
-
-        recorder.ondataavailable = (event) => {
-          audioChunks.push(event.data);
-        };
-
-        recorder.onstop = () => {
-          if (audioChunks.length > 0) {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-            setRecordedAudio(audioBlob);
-          }
-
-          // Stop all tracks to free microphone
-          if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-          }
-        };
-
-        // Start recording
-        recorder.start();
-      } catch (audioError: any) {
-        console.warn('Audio recording failed, but speech recognition may work:', audioError);
-        // Continue with speech recognition even if audio recording fails
-      }
-
-      // Set maximum time limit
-      const maxTimeTimeout = setTimeout(() => {
-        if (recorder && recorder.state === 'recording') {
-          recorder.stop();
-        }
-        setIsRecording(false);
-      }, 7000);
-
-      try {
-        // Wait for transcript
-        const transcript = await transcriptPromise;
-        setRecordedVoice(transcript);
-
-        // Stop recording after transcript is received
-        setTimeout(() => {
-          if (recorder && recorder.state === 'recording') {
-            recorder.stop();
-          }
-          clearTimeout(maxTimeTimeout);
-          setIsRecording(false);
-        }, 1000);
-
-      } catch (transcriptError: any) {
-        console.error('Speech recognition failed:', transcriptError);
-        clearTimeout(maxTimeTimeout);
-
-        if (recorder && recorder.state === 'recording') {
-          recorder.stop();
-        }
-
-        setIsRecording(false);
-        throw new Error('SpeechRecognitionFailed');
-      }
-
+      const transcript = await enhancedVoiceService.startListening();
+      setIsListening(false);
+      setRecordedVoice(transcript);
     } catch (error: any) {
-      console.error('Error grabando voz:', error);
-      setIsRecording(false);
-
-      let errorMessage = 'Error al grabar voz. Inténtalo de nuevo.';
-
-      if (error.name === 'NotFoundError') {
-        errorMessage = 'Micrófono no encontrado o no disponible. Verifica que esté conectado y no esté siendo usado por otra aplicación.';
-      } else if (error.name === 'NotAllowedError') {
-        errorMessage = 'Permiso de micrófono denegado. Haz clic en el candado 🔒 en la barra de direcciones y selecciona "Permitir" para el micrófono.';
-      } else if (error.name === 'NotReadableError') {
-        errorMessage = 'El micrófono está siendo usado por otra aplicación. Cierra otras apps que puedan estar usándolo.';
-      } else if (error.message === 'SpeechRecognitionFailed') {
-        errorMessage = 'El reconocimiento de voz falló. Verifica tu conexión a internet y configuración del navegador.';
-      } else if (error.name === 'AbortError') {
-        errorMessage = 'La grabación fue cancelada. Inténtalo de nuevo.';
-      }
-
-      setError(errorMessage);
+      console.error('Error en reconocimiento de voz:', error);
+      setIsListening(false);
+      setError('Error al reconocer voz. Verifica tu conexión a internet e intenta de nuevo.');
     }
-  };
-
-  const playRecording = () => {
-    if (!recordedAudio) return;
-
-    setIsPlaying(true);
-    const audioUrl = URL.createObjectURL(recordedAudio);
-    const audio = new Audio(audioUrl);
-
-    audio.onended = () => {
-      setIsPlaying(false);
-      URL.revokeObjectURL(audioUrl);
-    };
-
-    audio.onerror = () => {
-      setIsPlaying(false);
-      URL.revokeObjectURL(audioUrl);
-    };
-
-    audio.play().catch(() => {
-      setIsPlaying(false);
-      URL.revokeObjectURL(audioUrl);
-    });
-  };
-
-  const deleteRecording = () => {
-    setRecordedVoice(null);
-    setRecordedAudio(null);
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop();
-    }
-    setMediaRecorder(null);
-  };
-
-  const retryRecording = () => {
-    deleteRecording();
-    startRecording();
   };
 
   const handleConfirm = () => {
@@ -167,143 +34,94 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full">
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Mic className="w-8 h-8 text-blue-600" />
+    <div className="min-h-screen bg-[#282580] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
+        {/* Logo/Brand Section */}
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 mx-auto mb-4 shadow-lg rounded-xl overflow-hidden bg-white">
+            <img
+              src="/logo512.png"
+              alt="Wallet Voice Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto shadow-lg"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path></svg></div>';
+              }}
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">
-            Registro de Voz
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+            Wallet Voice
           </h1>
-          <p className="text-gray-600 mb-2">
-            Para mayor seguridad, registra tu voz diciendo tu nombre completo (máximo 5 segundos).
-          </p>
-          <p className="text-xs text-gray-500">
-            💡 Asegúrate de que tu micrófono esté conectado y permitido en el navegador.
+          <p className="text-gray-600 text-sm">
+            Gestiona tus finanzas con voz
           </p>
         </div>
 
+        {/* Voice Registration */}
         <div className="space-y-6">
           <div className="text-center">
             <p className="text-lg font-medium text-gray-800 mb-2">
               Di: "{user.name} {user.lastName}"
             </p>
+            <p className="text-sm text-gray-600">
+              El sistema convertirá tu voz en texto para registrarte.
+            </p>
           </div>
 
-            {!recordedVoice ? (
-             <div className="text-center">
-               {error && (
-                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                   <p className="text-red-600 text-sm font-medium mb-2">{error}</p>
-                   <button
-                     onClick={async () => {
-                       try {
-                         // Try to request permission
-                         const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                         testStream.getTracks().forEach(track => track.stop());
-                         setError(null);
-                         alert('¡Permiso otorgado! Ahora puedes intentar grabar.');
-                       } catch (permError: any) {
-                         if (permError.name === 'NotAllowedError') {
-                           alert('Permiso denegado. Ve a la configuración del navegador para permitir el micrófono.');
-                         } else {
-                           alert('Error al verificar permisos. Recarga la página e intenta de nuevo.');
-                         }
-                       }
-                     }}
-                     className="text-blue-600 hover:text-blue-800 text-sm underline"
-                   >
-                     Verificar permisos de micrófono
-                   </button>
-                 </div>
-               )}
-               <button
-                 onClick={() => {
-                   setError(null);
-                   startRecording();
-                 }}
-                 disabled={isRecording}
-                 className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
-                   isRecording
-                     ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                     : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                 }`}
-               >
-                 {isRecording ? (
-                   <div className="flex items-center justify-center gap-2">
-                     <MicOff size={20} />
-                     Grabando... (máx 5s)
-                   </div>
-                 ) : (
-                   <div className="flex items-center justify-center gap-2">
-                     <Mic size={20} />
-                     Comenzar Grabación
-                   </div>
-                 )}
-               </button>
-               {isRecording && (
-                 <div className="mt-4 flex justify-center">
-                   <div className="flex gap-1">
-                     <div className="w-2 h-8 bg-red-500 rounded animate-pulse"></div>
-                     <div className="w-2 h-6 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.1s'}}></div>
-                     <div className="w-2 h-10 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                     <div className="w-2 h-7 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.3s'}}></div>
-                     <div className="w-2 h-9 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                   </div>
-                 </div>
-               )}
-             </div>
+          {!recordedVoice ? (
+            <div className="text-center">
+              {error && (
+                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-red-600 text-sm font-medium">{error}</p>
+                </div>
+              )}
+              <button
+                onClick={startListening}
+                disabled={isListening}
+                className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
+                  isListening
+                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {isListening ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <Mic className="w-5 h-5 animate-pulse" />
+                    Escuchando...
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <Mic className="w-5 h-5" />
+                    Comenzar Grabación
+                  </div>
+                )}
+              </button>
+            </div>
           ) : (
             <div className="space-y-4">
-               <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-200">
-                 <CheckCircle className="w-6 h-6 text-green-600" />
-                 <div className="flex-1">
-                   <p className="font-medium text-green-800">Voz registrada</p>
-                   <p className="text-sm text-green-600">"{recordedVoice}"</p>
-                   <p className="text-xs text-green-500 mt-1">
-                     {recordedAudio
-                       ? 'Puedes escuchar, reintentar o eliminar la grabación'
-                       : 'Grabación de audio falló, pero el texto se registró correctamente'
-                     }
-                   </p>
-                 </div>
-               </div>
+              <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-200">
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-800">Voz reconocida correctamente</p>
+                  <p className="text-sm text-green-600">"{recordedVoice}"</p>
+                </div>
+              </div>
 
-               <div className="space-y-3">
-                 <div className="flex gap-2">
-                   <button
-                     onClick={playRecording}
-                     disabled={isPlaying || !recordedAudio}
-                     className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
-                   >
-                     <Mic className="w-4 h-4" />
-                     {isPlaying ? 'Reproduciendo...' : recordedAudio ? 'Escuchar Voz' : 'Solo Texto'}
-                   </button>
-                   <button
-                     onClick={retryRecording}
-                     disabled={isRecording}
-                     className="bg-orange-600 text-white py-3 px-4 rounded-xl hover:bg-orange-700 disabled:bg-orange-400 disabled:cursor-not-allowed transition-colors font-medium"
-                     title="Reintentar grabación"
-                   >
-                     <RotateCcw className="w-4 h-4" />
-                   </button>
-                   <button
-                     onClick={deleteRecording}
-                     className="bg-red-600 text-white py-3 px-4 rounded-xl hover:bg-red-700 transition-colors font-medium"
-                     title="Eliminar grabación"
-                   >
-                     <Trash2 className="w-4 h-4" />
-                   </button>
-                 </div>
-                 <button
-                   onClick={handleConfirm}
-                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
-                 >
-                   <CheckCircle className="w-4 h-4" />
-                   Confirmar y Continuar
-                 </button>
-               </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRecordedVoice(null)}
+                  className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 transition-colors font-medium"
+                >
+                  Reintentar
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  Confirmar
+                </button>
+              </div>
             </div>
           )}
 
