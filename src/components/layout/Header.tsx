@@ -178,8 +178,12 @@ const Header: React.FC = () => {
     <header className="sticky top-0 z-10 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <Wallet size={24} className="text-blue-600" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-white shadow-sm">
+            <img
+              src="/logo192.png"
+              alt="Wallet Voice Logo"
+              className="w-full h-full object-contain"
+            />
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900">Wallet Voice</h1>
