@@ -14,6 +14,7 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -53,16 +54,35 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
       // Start speech recognition in parallel
       const transcriptPromise = enhancedVoiceService.startListening();
 
-      // Wait for transcript
-      const transcript = await transcriptPromise;
-      setRecordedVoice(transcript);
-
-      // Stop recording 1 second after speech recognition completes
-      setTimeout(() => {
+      // Set maximum recording time (7 seconds total to be safe)
+      const maxRecordingTimeout = setTimeout(() => {
         if (recorder.state === 'recording') {
           recorder.stop();
         }
-      }, 1000);
+      }, 7000);
+
+      try {
+        // Wait for transcript
+        const transcript = await transcriptPromise;
+        setRecordedVoice(transcript);
+
+        // Stop recording 1 second after speech recognition completes
+        setTimeout(() => {
+          if (recorder.state === 'recording') {
+            recorder.stop();
+          }
+          clearTimeout(maxRecordingTimeout);
+        }, 1000);
+      } catch (transcriptError) {
+        // If speech recognition fails, still stop recording after delay
+        setTimeout(() => {
+          if (recorder.state === 'recording') {
+            recorder.stop();
+          }
+          clearTimeout(maxRecordingTimeout);
+        }, 2000);
+        throw transcriptError;
+      }
 
       // Stop recording if still recording (should be stopped by timeout or transcript end)
       if (recorder.state === 'recording') {
@@ -70,12 +90,14 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
       }
 
       setIsRecording(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error grabando voz:', error);
       setIsRecording(false);
-      // Fallback
-      const sampleVoice = `${user.name} ${user.lastName}`;
-      setRecordedVoice(sampleVoice);
+      setError(error.name === 'NotFoundError'
+        ? 'No se encontró micrófono. Verifica que esté conectado y habilitado.'
+        : error.name === 'NotAllowedError'
+        ? 'Permiso de micrófono denegado. Otorga permiso en la configuración del navegador.'
+        : 'Error al acceder al micrófono. Inténtalo de nuevo.');
     }
   };
 
@@ -144,41 +166,49 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
             </p>
           </div>
 
-          {!recordedVoice ? (
-            <div className="text-center">
-              <button
-                onClick={startRecording}
-                disabled={isRecording}
-                className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
-                  isRecording
-                    ? 'bg-red-500 hover:bg-red-600 animate-pulse'
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
-                }`}
-              >
-                {isRecording ? (
-                  <div className="flex items-center justify-center gap-2">
+            {!recordedVoice ? (
+             <div className="text-center">
+               {error && (
+                 <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+                   <p className="text-red-600 text-sm font-medium">{error}</p>
+                 </div>
+               )}
+               <button
+                 onClick={() => {
+                   setError(null);
+                   startRecording();
+                 }}
+                 disabled={isRecording}
+                 className={`w-full py-4 px-6 rounded-2xl font-semibold text-white transition-all duration-200 ${
+                   isRecording
+                     ? 'bg-red-500 hover:bg-red-600 animate-pulse'
+                     : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl'
+                 }`}
+               >
+                 {isRecording ? (
+                   <div className="flex items-center justify-center gap-2">
                      <MicOff size={20} />
                      Grabando... (máx 5s)
                    </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <Mic size={20} />
-                    Comenzar Grabación
-                  </div>
-                )}
-              </button>
-              {isRecording && (
-                <div className="mt-4 flex justify-center">
-                  <div className="flex gap-1">
-                    <div className="w-2 h-8 bg-red-500 rounded animate-pulse"></div>
-                    <div className="w-2 h-6 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-10 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.2s'}}></div>
-                    <div className="w-2 h-7 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.3s'}}></div>
-                    <div className="w-2 h-9 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.4s'}}></div>
-                  </div>
-                </div>
-              )}
-            </div>
+                 ) : (
+                   <div className="flex items-center justify-center gap-2">
+                     <Mic size={20} />
+                     Comenzar Grabación
+                   </div>
+                 )}
+               </button>
+               {isRecording && (
+                 <div className="mt-4 flex justify-center">
+                   <div className="flex gap-1">
+                     <div className="w-2 h-8 bg-red-500 rounded animate-pulse"></div>
+                     <div className="w-2 h-6 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.1s'}}></div>
+                     <div className="w-2 h-10 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.2s'}}></div>
+                     <div className="w-2 h-7 bg-red-400 rounded animate-pulse" style={{animationDelay: '0.3s'}}></div>
+                     <div className="w-2 h-9 bg-red-500 rounded animate-pulse" style={{animationDelay: '0.4s'}}></div>
+                   </div>
+                 </div>
+               )}
+             </div>
           ) : (
             <div className="space-y-4">
                <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-200">
