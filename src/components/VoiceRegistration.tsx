@@ -30,14 +30,6 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
       setIsRecording(true);
       setError(null);
 
-      // Check if microphone is available
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(device => device.kind === 'audioinput');
-
-      if (audioInputs.length === 0) {
-        throw new Error('NoMicrophone');
-      }
-
       // Start speech recognition first (this is more important)
       const transcriptPromise = enhancedVoiceService.startListening();
 
@@ -115,14 +107,16 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
 
       let errorMessage = 'Error al grabar voz. Inténtalo de nuevo.';
 
-      if (error.message === 'NoMicrophone') {
-        errorMessage = 'No se detectó micrófono. Conecta un micrófono e inténtalo de nuevo.';
-      } else if (error.name === 'NotFoundError') {
-        errorMessage = 'Micrófono no encontrado. Verifica que esté conectado correctamente.';
+      if (error.name === 'NotFoundError') {
+        errorMessage = 'Micrófono no encontrado o no disponible. Verifica que esté conectado y no esté siendo usado por otra aplicación.';
       } else if (error.name === 'NotAllowedError') {
-        errorMessage = 'Permiso de micrófono denegado. Haz clic en el icono del micrófono en la barra de direcciones y permite el acceso.';
+        errorMessage = 'Permiso de micrófono denegado. Haz clic en el candado 🔒 en la barra de direcciones y selecciona "Permitir" para el micrófono.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage = 'El micrófono está siendo usado por otra aplicación. Cierra otras apps que puedan estar usándolo.';
       } else if (error.message === 'SpeechRecognitionFailed') {
-        errorMessage = 'El reconocimiento de voz falló. Esto puede deberse a una conexión lenta o configuración del navegador.';
+        errorMessage = 'El reconocimiento de voz falló. Verifica tu conexión a internet y configuración del navegador.';
+      } else if (error.name === 'AbortError') {
+        errorMessage = 'La grabación fue cancelada. Inténtalo de nuevo.';
       }
 
       setError(errorMessage);
@@ -182,9 +176,12 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
             Registro de Voz
           </h1>
-           <p className="text-gray-600">
-             Para mayor seguridad, registra tu voz diciendo tu nombre completo (máximo 5 segundos).
-           </p>
+          <p className="text-gray-600 mb-2">
+            Para mayor seguridad, registra tu voz diciendo tu nombre completo (máximo 5 segundos).
+          </p>
+          <p className="text-xs text-gray-500">
+            💡 Asegúrate de que tu micrófono esté conectado y permitido en el navegador.
+          </p>
         </div>
 
         <div className="space-y-6">
@@ -198,7 +195,27 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
              <div className="text-center">
                {error && (
                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-                   <p className="text-red-600 text-sm font-medium">{error}</p>
+                   <p className="text-red-600 text-sm font-medium mb-2">{error}</p>
+                   <button
+                     onClick={async () => {
+                       try {
+                         // Try to request permission
+                         const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                         testStream.getTracks().forEach(track => track.stop());
+                         setError(null);
+                         alert('¡Permiso otorgado! Ahora puedes intentar grabar.');
+                       } catch (permError: any) {
+                         if (permError.name === 'NotAllowedError') {
+                           alert('Permiso denegado. Ve a la configuración del navegador para permitir el micrófono.');
+                         } else {
+                           alert('Error al verificar permisos. Recarga la página e intenta de nuevo.');
+                         }
+                       }
+                     }}
+                     className="text-blue-600 hover:text-blue-800 text-sm underline"
+                   >
+                     Verificar permisos de micrófono
+                   </button>
                  </div>
                )}
                <button
