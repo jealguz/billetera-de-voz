@@ -1,43 +1,208 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#3b82f6" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="Billetera virtual con asistente por voz para gestionar deudas"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <title>Wallet Voice - Billetera por Voz</title>
+    
+    <!-- POLYFILL COMPLETO PARA PROCESS - DEBE ESTAR PRIMERO -->
+    <script>
+      // Polyfill completo para process (SOLUCIÓN DEFINITIVA)
+      (function() {
+        // Solo ejecutar en el navegador
+        if (typeof window === 'undefined') return;
+        
+        // Si process no existe, crearlo
+        if (!window.process) {
+          window.process = {
+            // Propiedades esenciales
+            env: {
+              NODE_ENV: 'development',
+              PUBLIC_URL: '',
+              REACT_APP_VERSION: '1.0.0'
+            },
+            // Métodos esenciales
+            cwd: function() { return ''; },
+            nextTick: function(callback) { setTimeout(callback, 0); },
+            exit: function(code) { console.log('Process exit:', code); },
+            
+            // Propiedades estándar
+            version: 'v16.14.0',
+            versions: {
+              node: '16.14.0',
+              v8: '9.4.0',
+              uv: '1.42.0',
+              zlib: '1.2.11',
+              brotli: '1.0.9',
+              ares: '1.18.1',
+              modules: '93',
+              nghttp2: '1.45.1',
+              napi: '8',
+              llhttp: '6.0.4',
+              openssl: '1.1.1l',
+              cldr: '39.0',
+              icu: '69.1',
+              tz: '2021a',
+              unicode: '13.0'
+            },
+            platform: 'browser',
+            arch: 'x64',
+            argv: [],
+            argv0: 'node',
+            execArgv: [],
+            execPath: '/usr/local/bin/node',
+            pid: 1,
+            ppid: 0,
+            title: 'browser',
+            debugPort: 9229,
+            hrtime: typeof performance !== 'undefined' && performance.now ? 
+              function() { return performance.now(); } : 
+              function() { return Date.now(); },
+            
+            // EventEmitter simulation
+            on: function() { /* no-op */ },
+            once: function() { /* no-op */ },
+            emit: function() { /* no-op */ },
+            addListener: function() { /* no-op */ },
+            removeListener: function() { /* no-op */ }
+          };
+        }
+        
+        // Asegurar que process.env siempre exista
+        if (!window.process.env) {
+          window.process.env = {};
+        }
+        
+        // Establecer NODE_ENV si no está definido
+        if (!window.process.env.NODE_ENV) {
+          window.process.env.NODE_ENV = 'development';
+        }
+        
+        // Para depuración
+        console.log('✅ Process polyfill cargado. NODE_ENV:', window.process.env.NODE_ENV);
+      })();
+    </script>
+    
+    <!-- ESTILOS CSS VIA CDN (opcional, temporal) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#eff6ff',
+                100: '#dbeafe',
+                200: '#bfdbfe',
+                300: '#93c5fd',
+                400: '#60a5fa',
+                500: '#3b82f6',
+                600: '#2563eb',
+                700: '#1d4ed8',
+                800: '#1e40af',
+                900: '#1e3a8a',
+              }
+            }
+          }
+        }
+      }
+    </script>
+    
   </head>
   <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <div style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #3b82f6;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: sans-serif;
+        padding: 20px;
+        text-align: center;
+        z-index: 9999;
+      ">
+        <div>
+          <h1 style="font-size: 24px; margin-bottom: 20px;">
+            ⚠️ JavaScript Requerido
+          </h1>
+          <p>
+            Esta aplicación necesita JavaScript para funcionar.
+            <br>
+            Por favor, habilita JavaScript en tu navegador y recarga la página.
+          </p>
+        </div>
+      </div>
+    </noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
+    
+    <!-- Script opcional para verificar que todo funciona -->
+    <script>
+      // Verificar que React se montó correctamente
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root && root.children.length === 0) {
+          console.warn('⚠️ El elemento root está vacío. React podría no haberse montado.');
+          
+          // Mostrar mensaje de carga si React falla
+          var loadingDiv = document.createElement('div');
+          loadingDiv.innerHTML = `
+            <div style="
+              position: fixed;
+              top: 0;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              background: #f3f4f6;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              font-family: sans-serif;
+            ">
+              <div style="text-align: center; padding: 40px;">
+                <div style="font-size: 48px; margin-bottom: 20px;">🎤</div>
+                <h1 style="color: #3b82f6; font-size: 24px; margin-bottom: 10px;">
+                  Wallet Voice
+                </h1>
+                <p style="color: #6b7280;">
+                  Cargando aplicación de billetera por voz...
+                </p>
+                <div style="margin-top: 30px;">
+                  <div style="
+                    width: 40px;
+                    height: 40px;
+                    border: 4px solid #e5e7eb;
+                    border-top-color: #3b82f6;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto;
+                  "></div>
+                </div>
+              </div>
+            </div>
+            <style>
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            </style>
+          `;
+          root.appendChild(loadingDiv);
+        }
+      }, 3000);
+    </script>
   </body>
 </html>
