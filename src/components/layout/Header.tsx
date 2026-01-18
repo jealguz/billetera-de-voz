@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Settings, RotateCcw, LogOut, Download, Volume2 } from 'lucide-react';
+import { RotateCcw, LogOut, Download, Volume2 } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/storageService';
@@ -97,46 +97,8 @@ const Header: React.FC = () => {
     window.location.reload();
   };
 
-  const getLanguageName = (langCode: string): string => {
-    const languages: { [key: string]: string } = {
-      'es-ES': 'Español (España)',
-      'es-US': 'Español (EE.UU.)',
-      'es-MX': 'Español (México)',
-      'es-CO': 'Español (Colombia)',
-      'en-US': 'Inglés (EE.UU.)',
-      'en-GB': 'Inglés (Reino Unido)',
-      'en-AU': 'Inglés (Australia)',
-      'fr-FR': 'Francés (Francia)',
-      'de-DE': 'Alemán (Alemania)',
-      'it-IT': 'Italiano (Italia)',
-      'pt-BR': 'Portugués (Brasil)',
-      'pt-PT': 'Portugués (Portugal)',
-      'ja-JP': 'Japonés (Japón)',
-      'ko-KR': 'Coreano (Corea)',
-      'zh-CN': 'Chino (Mandarín)',
-      'ru-RU': 'Ruso (Rusia)',
-      'ar-SA': 'Árabe (Arabia Saudita)',
-    };
-    return languages[langCode] || `${langCode} (Desconocido)`;
-  };
 
-  const getVoiceGender = (voiceName: string): string => {
-    const lowerName = voiceName.toLowerCase();
-    // Palabras que indican voz femenina
-    const femaleKeywords = ['female', 'woman', 'mujer', 'ana', 'maria', 'carmen', 'laura', 'sofia', 'isabella', 'emma', 'olivia', 'ava', 'mia', 'charlotte', 'amelia', 'susana', 'rosa', 'teresa', 'cristina', 'susan', 'sarah', 'lisa', 'jennifer', 'michelle'];
-    // Palabras que indican voz masculina
-    const maleKeywords = ['male', 'man', 'hombre', 'david', 'juan', 'carlos', 'pedro', 'luis', 'miguel', 'jose', 'antonio', 'francisco', 'daniel', 'pablo', 'roberto', 'alberto', 'fernando', 'manuel', 'dilan', 'mark', 'john', 'michael'];
-
-    if (femaleKeywords.some(keyword => lowerName.includes(keyword))) {
-      return 'Femenina (ej. Susan, Ana, María)';
-    } else if (maleKeywords.some(keyword => lowerName.includes(keyword))) {
-      return 'Masculina (ej. Dilan, David, Juan)';
-    } else {
-      return 'Neutro/Desconocido';
-    }
-  };
-
-  const currentVoice = userService.getCurrentUser()?.voicePreference;
+  
 
    return (
     <header className="sticky top-0 z-10 bg-white p-4 shadow-sm">
@@ -373,6 +335,6 @@ const Header: React.FC = () => {
        </div>
      </header>
    );
- };
-
+ 
+  }
 export default Header;
