@@ -244,8 +244,8 @@ const Header: React.FC = () => {
                  </h3>
                  <p className="text-sm text-gray-600 mb-4">
                    {voiceModalStep === 'language'
-                     ? 'Elige el idioma para las voces del asistente.'
-                     : `Elige la voz en ${getLanguageName(selectedLanguage || '')}. Incluye voces masculinas y femeninas.`
+                     ? 'Primero elige el idioma para las voces del asistente.'
+                     : `Ahora selecciona la voz en ${getLanguageName(selectedLanguage || '')}.`
                    }
                  </p>
                  {voiceModalStep === 'language' && (
@@ -255,19 +255,62 @@ const Header: React.FC = () => {
                      </p>
                    </div>
                  )}
-                 <div className="space-y-3 max-h-96 overflow-y-auto">
-                   {voiceModalStep === 'language' ? (
-                     // Sección de idiomas
-                     uniqueLanguages.map((lang) => (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                 {voiceModalStep === 'language' ? (
+                   // Paso 1: Selección de idioma
+                   <div className="space-y-3">
+                     <p className="text-sm text-gray-600 mb-4">
+                       Selecciona el idioma para las voces del asistente:
+                     </p>
+                     {uniqueLanguages.map((lang) => (
                        <button
                          key={lang}
                          onClick={() => handleLanguageSelect(lang)}
-                         className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-gray-50 transition-all duration-200"
+                         className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-gray-50 transition-all duration-200 group"
                        >
-                         <div className="font-semibold text-gray-800">{getLanguageName(lang)}</div>
+                         <div className="font-semibold text-gray-800 group-hover:text-blue-700">
+                           {getLanguageName(lang)}
+                         </div>
                          <div className="text-sm text-gray-600 mt-1">
                            {groupedVoices[lang]?.length || 0} voces disponibles
                          </div>
+                       </button>
+                     ))}
+                   </div>
+                 ) : (
+                   // Paso 2: Selección de voz dentro del idioma
+                   <div className="space-y-3">
+                     <div className="flex items-center justify-between mb-4">
+                       <button
+                         onClick={handleBackToLanguages}
+                         className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
+                       >
+                         ← Volver a idiomas
+                       </button>
+                       <span className="text-sm font-medium text-gray-700">
+                         Voces en {getLanguageName(selectedLanguage || '')}
+                       </span>
+                     </div>
+
+                     <div className="space-y-2">
+                       {selectedLanguage && groupedVoices[selectedLanguage]?.map((voice, index) => (
+                         <button
+                           key={`${selectedLanguage}-${index}`}
+                           onClick={() => handleVoiceSelect(voice.voiceURI)}
+                           className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
+                             currentVoice === voice.voiceURI
+                               ? 'border-blue-500 bg-blue-50 shadow-md'
+                               : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                           }`}
+                         >
+                           <div className="font-medium text-gray-700">{voice.name}</div>
+                           <div className="text-xs text-gray-500">{getVoiceGender(voice.name)}</div>
+                         </button>
+                       ))}
+                     </div>
+                   </div>
+                 )}
+               </div>
                        </button>
                      ))
                    ) : (
@@ -340,7 +383,7 @@ const Header: React.FC = () => {
                      setVoiceModalStep('language');
                      setSelectedLanguage(null);
                    }}
-                   className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700"
+                   className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors"
                  >
                    Cerrar
                  </button>
