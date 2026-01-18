@@ -53,17 +53,7 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
       // Start speech recognition in parallel
       const transcriptPromise = enhancedVoiceService.startListening();
 
-      // Create a timeout promise for maximum recording time (5 seconds)
-      const timeoutPromise = new Promise<void>((resolve) => {
-        setTimeout(() => {
-          if (recorder.state === 'recording') {
-            recorder.stop();
-          }
-          resolve();
-        }, 5000); // Increased to 5 seconds
-      });
-
-      // Wait for transcript (up to 5 seconds)
+      // Wait for transcript
       const transcript = await transcriptPromise;
       setRecordedVoice(transcript);
 
