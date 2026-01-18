@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Mic, UserPlus } from 'lucide-react';
+import { Mail, Lock, Mic, UserPlus, Download } from 'lucide-react';
 import { userService } from '../services/userService';
+import { usePWAInstall } from '../hooks/usePWAInstall';
 import { toast } from 'react-hot-toast';
 
 interface LoginPageProps {
@@ -13,6 +14,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const { isInstallable, installPWA } = usePWAInstall();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +33,29 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
 
   return (
     <div className="min-h-screen bg-[#282580] flex items-center justify-center p-4">
+      {/* Install Banner */}
+      {isInstallable && (
+        <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Download className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900">Instala Wallet Voice</h4>
+                <p className="text-sm text-gray-600">Acceso rápido desde tu pantalla de inicio</p>
+              </div>
+            </div>
+            <button
+              onClick={installPWA}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+              Instalar
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
