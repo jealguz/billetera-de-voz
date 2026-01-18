@@ -41,6 +41,9 @@ export const usePWAInstall = () => {
 
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
+    
+    // Usa la variable outcome para evitar el warning
+    console.log(`User response to the install prompt: ${outcome}`);
 
     // Reset the deferred prompt
     setDeferredPrompt(null);
