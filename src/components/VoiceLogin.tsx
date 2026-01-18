@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic } from 'lucide-react';
 import { userService } from '../services/userService';
 import { enhancedVoiceService } from '../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
@@ -11,7 +11,6 @@ interface VoiceLoginProps {
 
 const VoiceLogin: React.FC<VoiceLoginProps> = ({ onLogin, onSwitchToLogin }) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedVoice, setRecordedVoice] = useState<string | null>(null);
 
   const startRecording = async () => {
     try {

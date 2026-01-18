@@ -12,25 +12,7 @@ export const useVoice = () => {
   const [error, setError] = useState<string | null>(null);
   const [waitingForConfirmation, setWaitingForConfirmation] = useState(false);
 
-  // Efecto para escuchar confirmaciones cuando estamos esperando
-  useEffect(() => {
-    if (waitingForConfirmation && transcript && transcript !== 'Escuchando...') {
-      const handleVoiceConfirmation = async () => {
-        const lowerTranscript = transcript.toLowerCase();
-        
-        if (lowerTranscript.includes('sí') || lowerTranscript.includes('si') || 
-            lowerTranscript.includes('confirmar') || lowerTranscript.includes('sip')) {
-          await handleConfirmation(true);
-        } else if (lowerTranscript.includes('no') || lowerTranscript.includes('cancelar') ||
-                  lowerTranscript.includes('nop')) {
-          await handleConfirmation(false);
-        }
-        // Si no es una confirmación válida, ignorar y seguir esperando
-      };
 
-      handleVoiceConfirmation();
-    }
-  }, [transcript, waitingForConfirmation]);
 
   const startListening = useCallback(async (): Promise<VoiceResponse | null> => {
     try {
@@ -134,6 +116,26 @@ export const useVoice = () => {
       return errorResponse;
     }
   }, [confirmationData]);
+
+  // Efecto para escuchar confirmaciones cuando estamos esperando
+  useEffect(() => {
+    if (waitingForConfirmation && transcript && transcript !== 'Escuchando...') {
+      const handleVoiceConfirmation = async () => {
+        const lowerTranscript = transcript.toLowerCase();
+
+        if (lowerTranscript.includes('sí') || lowerTranscript.includes('si') ||
+            lowerTranscript.includes('confirmar') || lowerTranscript.includes('sip')) {
+          await handleConfirmation(true);
+        } else if (lowerTranscript.includes('no') || lowerTranscript.includes('cancelar') ||
+                  lowerTranscript.includes('nop')) {
+          await handleConfirmation(false);
+        }
+        // Si no es una confirmación válida, ignorar y seguir esperando
+      };
+
+      handleVoiceConfirmation();
+    }
+  }, [transcript, waitingForConfirmation, handleConfirmation]);
 
   const stopListening = useCallback(() => {
     enhancedVoiceService.stopListening();

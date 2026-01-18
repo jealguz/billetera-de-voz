@@ -346,7 +346,6 @@ export const storageService = {
   },
 
   resetPayments(): void {
-    const payments = this.getPayments();
     const debts = this.getDebts();
     
     // Reset paidAmount en todas las deudas

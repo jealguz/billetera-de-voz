@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, Bell, User, Settings, RotateCcw, LogOut } from 'lucide-react';
+import { Wallet, Settings, RotateCcw, LogOut } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/storageService';

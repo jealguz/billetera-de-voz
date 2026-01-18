@@ -4,7 +4,6 @@ import { useVoice } from '../../hooks/useVoice';
 import { useNavigate } from 'react-router-dom';
 
 const QuickActions: React.FC = () => {
-  const { processTextCommand } = useVoice();
   const navigate = useNavigate();
 
   const handleQuickAction = (action: 'add' | 'summary' | 'history') => {

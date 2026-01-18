@@ -10,14 +10,12 @@ interface ClientBalance {
 
 const BalanceCards: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'owing' | 'owed'>('owed');
 
   useEffect(() => {
     const loadData = () => {
       setDebts(storageService.getDebts());
-      setClients(storageService.getClients());
     };
 
     loadData();

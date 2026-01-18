@@ -4,11 +4,6 @@ import { useVoice } from '../../hooks/useVoice';
 const CommandExamples: React.FC = () => {
   const { processTextCommand } = useVoice();
 
-  const handleExampleClick = (example: string) => {
-    // Simular que el usuario dijo este comando
-    processTextCommand(example);
-  };
-
   const examples = [
     {
       command: "¿Cuánto me debe José Castro?",

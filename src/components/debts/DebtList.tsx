@@ -15,16 +15,16 @@ const DebtList: React.FC = () => {
   const [filterType, setFilterType] = useState<'all' | 'owed' | 'owing'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
 
-  // Cargar deudas al montar el componente
-  useEffect(() => {
-    loadDebts();
-  }, []);
-
   // Función para cargar deudas
   const loadDebts = useCallback(() => {
     const loadedDebts = storageService.getDebts();
     setDebts(loadedDebts);
   }, []);
+
+  // Cargar deudas al montar el componente
+  useEffect(() => {
+    loadDebts();
+  }, [loadDebts]);
 
   // Función para filtrar deudas
   const filterDebts = useCallback(() => {

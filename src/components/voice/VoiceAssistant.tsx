@@ -14,9 +14,9 @@ const VoiceAssistant: React.FC = () => {
      stopListening,
      lastMessage,
      waitingForConfirmation,
-   } = useVoice();
-  
-  const [showFeedback, setShowFeedback] = useState(false);
+    } = useVoice();
+
+   const [showFeedback, setShowFeedback] = useState(false);
 
   // Obtener el texto de la respuesta
   const responseText = lastResponse?.response || '';

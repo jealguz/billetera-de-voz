@@ -1,5 +1,5 @@
 import { toast } from 'react-hot-toast';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { VoiceProvider } from './context/VoiceContext';
 import Header from './components/layout/Header';
@@ -17,7 +17,6 @@ const DebtsPage = lazy(() => import('./pages/DebtsPage'));
 const AddDebtPage = lazy(() => import('./pages/AddDebtPage'));
 
 function AppContent() {
-  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<'login' | 'register' | 'voiceLogin' | 'app'>('login');
   const [user, setUser] = useState(userService.getCurrentUser());
   const [voiceVerified, setVoiceVerified] = useState(!user?.voiceData);
