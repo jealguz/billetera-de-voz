@@ -8,7 +8,6 @@ const ChatAssistant: React.FC = () => {
   const {
     isListening,
     transcript,
-    lastResponse,
     isProcessing,
     conversation,
     startListening,

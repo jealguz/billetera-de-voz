@@ -1,8 +1,6 @@
 import React from 'react';
-import { useVoice } from '../../hooks/useVoice';
 
 const CommandExamples: React.FC = () => {
-  const { processTextCommand } = useVoice();
 
   const examples = [
     {

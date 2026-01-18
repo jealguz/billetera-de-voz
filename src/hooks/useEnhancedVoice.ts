@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { enhancedVoiceService } from '../services/enhancedVoiceService';
 
 export const useEnhancedVoice = () => {

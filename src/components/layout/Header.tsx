@@ -23,6 +23,7 @@ const Header: React.FC = () => {
     };
 
     loadVoices();
+    
     speechSynthesis.onvoiceschanged = loadVoices;  
   }, []);
 

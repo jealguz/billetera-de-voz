@@ -1,6 +1,5 @@
 import React from 'react';
 import { Users, Bell, History } from 'lucide-react';
-import { useVoice } from '../../hooks/useVoice';
 import { useNavigate } from 'react-router-dom';
 
 const QuickActions: React.FC = () => {

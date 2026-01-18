@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, Lock, Mic, UserPlus, Wallet } from 'lucide-react';
+import { Mail, Lock, Mic, UserPlus } from 'lucide-react';
 import { userService } from '../services/userService';
 import { toast } from 'react-hot-toast';
 
@@ -34,8 +34,17 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <Wallet className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 mx-auto mb-4 shadow-lg rounded-full overflow-hidden bg-white">
+            <img
+              src="/logo512.png"
+              alt="Wallet Voice Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // Fallback si la imagen no carga
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.parentElement!.innerHTML = '<div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path></svg></div>';
+              }}
+            />
           </div>
           <h1 className="text-3xl font-bold text-white mb-2">
             Wallet Voice

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatCurrency } from '../../utils/formatters';
-import { Debt, Client } from '../../types';
+import { Debt } from '../../types';
 import { storageService } from '../../services/storageService';
 
 interface ClientBalance {

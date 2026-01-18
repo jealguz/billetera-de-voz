@@ -60,7 +60,6 @@ const VoiceAssistant: React.FC = () => {
           disabled={isSpeaking}
           aria-label={isListening ? 'Detener escucha de voz' : 'Iniciar asistente de voz'}
           aria-pressed={isListening}
-          role="button"
           className={`
             ${isListening ? 'animate-pulse bg-red-500' : 'bg-white bg-opacity-20'}
             ${isSpeaking ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-30'}
