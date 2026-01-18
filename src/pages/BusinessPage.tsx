@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { useVoice } from '../hooks/useVoice';
 import { clientService } from '../services/clientService';
-import ConfirmationDialog from '../components/voice/ConfirmationDialog';
 import Card from '../components/ui/Card';
 
 const BusinessPage: React.FC = () => {
@@ -16,11 +15,6 @@ const BusinessPage: React.FC = () => {
     handleConfirmation,
     isSpeaking,
     waitingForConfirmation,
-    lastMessage,
-    hasError,
-    data,
-    parsedCommand,
-    // Añadir esto del hook actualizado
   } = useVoice();
 
    useEffect(() => {

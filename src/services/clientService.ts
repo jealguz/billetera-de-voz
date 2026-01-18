@@ -1,4 +1,4 @@
-import { Client, ClientSummary, Debt, NewDebt, Payment } from '../types';
+import { Client, ClientSummary, Debt } from '../types';
 
 const CLIENTS_KEY = 'wallet-voice-business-clients';
 const BUSINESS_DEBTS_KEY = 'wallet-voice-business-debts';

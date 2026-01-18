@@ -9,66 +9,10 @@ import { toast } from 'react-hot-toast';
 const Header: React.FC = () => {
   const { isListening } = useVoiceContext();
   const { isInstallable, installPWA } = usePWAInstall();
-  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [resetType, setResetType] = useState<'debts' | 'payments' | 'all' | null>(null);
   const [confirmStep, setConfirmStep] = useState(1);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [voiceModalStep, setVoiceModalStep] = useState<'language' | 'voice'>('language');
-  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-
-  React.useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = speechSynthesis.getVoices();
-      setVoices(availableVoices); // Mostrar todas las voces disponibles
-    };
-
-    loadVoices();
-    
-    speechSynthesis.onvoiceschanged = loadVoices;  
-  }, []);
-
-  // Group voices by language
-  const groupedVoices = React.useMemo(() => {
-    const groups: { [lang: string]: SpeechSynthesisVoice[] } = {};
-    voices.forEach(voice => {
-      if (!groups[voice.lang]) {
-        groups[voice.lang] = [];
-      }
-      groups[voice.lang].push(voice);
-    });
-    return groups;
-  }, [voices]);
-
-  // Get unique languages
-  const uniqueLanguages = React.useMemo(() => {
-    return Object.keys(groupedVoices).sort();
-  }, [groupedVoices]);
-
-  const handleVoiceSelect = (voiceURI: string) => {
-    userService.updateUser({ voicePreference: voiceURI });
-    setShowVoiceSettings(false);
-    setVoiceModalStep('language');
-    setSelectedLanguage(null);
-  };
-
-  const handleCustomVoiceSelect = (voiceType: 'female' | 'male') => {
-    userService.updateUser({ voicePreference: voiceType });
-    setShowVoiceSettings(false);
-    setVoiceModalStep('language');
-    setSelectedLanguage(null);
-  };
-
-  const handleLanguageSelect = (lang: string) => {
-    setSelectedLanguage(lang);
-    setVoiceModalStep('voice');
-  };
-
-  const handleBackToLanguages = () => {
-    setVoiceModalStep('language');
-    setSelectedLanguage(null);
-  };
 
   const handleExportData = () => {
     const data = storageService.exportData();
@@ -217,13 +161,7 @@ const Header: React.FC = () => {
             >
               <RotateCcw size={20} className="text-red-600" />
             </button>
-            <button
-              onClick={() => setShowVoiceSettings(true)}
-              className="p-2 hover:bg-gray-100 rounded-lg"
-              title="Configuración de voz"
-            >
-              <Settings size={20} className="text-gray-600" />
-            </button>
+
             <button
               onClick={handleLogout}
               className="p-2 hover:bg-red-100 rounded-lg"
@@ -233,130 +171,7 @@ const Header: React.FC = () => {
             </button>
           </div>
 
-          {/* Modal de configuración de voz */}
-          {showVoiceSettings && (
-            <div className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50">
-              <div className="bg-white border-2 border-gray-300 rounded-3xl shadow-2xl p-8 max-w-lg w-full mx-4 max-h-[70vh] overflow-y-auto">
-                <h3 className="text-xl font-bold mb-2 text-gray-800">
-                  {voiceModalStep === 'language' ? 'Seleccionar Idioma' : 'Seleccionar Voz'}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4">
-                  {voiceModalStep === 'language'
-                    ? 'Primero elige el idioma para las voces del asistente.'
-                    : `Ahora selecciona la voz en ${getLanguageName(selectedLanguage || '')}.`
-                  }
-                </p>
-                {voiceModalStep === 'language' && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                    <p className="text-xs text-blue-800">
-                      💡 <strong>Para más voces:</strong> Ve a la configuración de tu sistema operativo y descarga paquetes de voz adicionales (como "Microsoft Speech Platform" en Windows o voces de Google en otros sistemas).
-                    </p>
-                  </div>
-                )}
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {voiceModalStep === 'language' ? (
-                    // Paso 1: Selección de idioma
-                    <div className="space-y-3">
-                      <p className="text-sm text-gray-600 mb-4">
-                        Selecciona el idioma para las voces del asistente:
-                      </p>
-                      {uniqueLanguages.map((lang) => (
-                        <button
-                          key={lang}
-                          onClick={() => handleLanguageSelect(lang)}
-                          className="w-full text-left p-4 rounded-xl border-2 border-gray-200 hover:border-blue-300 hover:bg-gray-50 transition-all duration-200 group"
-                        >
-                          <div className="font-semibold text-gray-800 group-hover:text-blue-700">
-                            {getLanguageName(lang)}
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1">
-                            {groupedVoices[lang]?.length || 0} voces disponibles
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    // Paso 2: Selección de voz dentro del idioma
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between mb-4">
-                        <button
-                          onClick={handleBackToLanguages}
-                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors"
-                        >
-                          ← Volver a idiomas
-                        </button>
-                        <span className="text-sm font-medium text-gray-700">
-                          Voces en {getLanguageName(selectedLanguage || '')}
-                        </span>
-                      </div>
 
-                      {/* Voces internas personalizadas */}
-                      <div className="mb-4">
-                        <h5 className="font-medium text-gray-700 mb-2">Voces Internas (Offline)</h5>
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => handleCustomVoiceSelect('female')}
-                            className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                              currentVoice === 'female'
-                                ? 'border-blue-500 bg-blue-50 shadow-md'
-                                : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            <div className="font-medium text-gray-700">Voz Femenina Española</div>
-                            <div className="text-xs text-gray-500">Trabaja sin conexión a internet</div>
-                          </button>
-                          <button
-                            onClick={() => handleCustomVoiceSelect('male')}
-                            className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                              currentVoice === 'male'
-                                ? 'border-blue-500 bg-blue-50 shadow-md'
-                                : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            <div className="font-medium text-gray-700">Voz Masculina Española</div>
-                            <div className="text-xs text-gray-500">Trabaja sin conexión a internet</div>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Voces del sistema */}
-                      {selectedLanguage && (
-                        <div>
-                          <h5 className="font-medium text-gray-700 mb-2">Voces del Sistema</h5>
-                          <div className="space-y-2">
-                            {groupedVoices[selectedLanguage]?.map((voice, index) => (
-                              <button
-                                key={`${selectedLanguage}-${index}`}
-                                onClick={() => handleVoiceSelect(voice.voiceURI)}
-                                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                                  currentVoice === voice.voiceURI
-                                    ? 'border-blue-500 bg-blue-50 shadow-md'
-                                    : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                                }`}
-                              >
-                                <div className="font-medium text-gray-700">{voice.name}</div>
-                                <div className="text-xs text-gray-500">{getVoiceGender(voice.name)}</div>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={() => {
-                    setShowVoiceSettings(false);
-                    setVoiceModalStep('language');
-                    setSelectedLanguage(null);
-                  }}
-                  className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* Modal de backup */}
           {showBackupModal && (
@@ -394,51 +209,11 @@ const Header: React.FC = () => {
                 >
                   Cerrar
                 </button>
-              </div>
-            </div>
-          )}
+               </div>
+             </div>
+           )}
 
-          {/* Modal de backup */}
-          {showBackupModal && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-                <h3 className="text-lg font-bold mb-4 text-blue-600">💾 Backup de Datos</h3>
-                <p className="text-gray-700 mb-4">
-                  Protege tu información financiera. Exporta regularmente y guarda en un lugar seguro.
-                </p>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-green-800">
-                    ✅ <strong>Datos seguros:</strong> Encriptados con AES-256, offline, perpetuos en tu dispositivo.
-                  </p>
-                </div>
-                <div className="space-y-4">
-                  <button
-                    onClick={handleExportData}
-                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-                  >
-                    📤 Exportar Datos (Descargar JSON)
-                  </button>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-2">📥 Importar Datos</label>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportData}
-                      className="w-full p-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowBackupModal(false)}
-                  className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700"
-                >
-                  Cerrar
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Modal de reset */}
+           {/* Modal de reset */}
           {showResetModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">

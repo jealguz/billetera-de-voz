@@ -1,4 +1,4 @@
-import { Debt, NewDebt } from '../types';
+import { Debt } from '../types';
 import { storageService } from './storageService';
 
 export const debtService = {
