@@ -28,37 +28,59 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
   const startRecording = async () => {
     try {
       setIsRecording(true);
+      setError(null);
 
-      // Get user media (microphone)
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      setMediaRecorder(recorder);
+      // Check if microphone is available
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === 'audioinput');
 
-      const audioChunks: Blob[] = [];
+      if (audioInputs.length === 0) {
+        throw new Error('NoMicrophone');
+      }
 
-      recorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-
-      recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        setRecordedAudio(audioBlob);
-
-        // Stop all tracks to free microphone
-        stream.getTracks().forEach(track => track.stop());
-      };
-
-      // Start recording
-      recorder.start();
-
-      // Start speech recognition in parallel
+      // Start speech recognition first (this is more important)
       const transcriptPromise = enhancedVoiceService.startListening();
 
-      // Set maximum recording time (7 seconds total to be safe)
-      const maxRecordingTimeout = setTimeout(() => {
-        if (recorder.state === 'recording') {
+      let recorder: MediaRecorder | null = null;
+      let stream: MediaStream | null = null;
+
+      try {
+        // Try to get audio stream for recording
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        recorder = new MediaRecorder(stream);
+        setMediaRecorder(recorder);
+
+        const audioChunks: Blob[] = [];
+
+        recorder.ondataavailable = (event) => {
+          audioChunks.push(event.data);
+        };
+
+        recorder.onstop = () => {
+          if (audioChunks.length > 0) {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            setRecordedAudio(audioBlob);
+          }
+
+          // Stop all tracks to free microphone
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        };
+
+        // Start recording
+        recorder.start();
+      } catch (audioError: any) {
+        console.warn('Audio recording failed, but speech recognition may work:', audioError);
+        // Continue with speech recognition even if audio recording fails
+      }
+
+      // Set maximum time limit
+      const maxTimeTimeout = setTimeout(() => {
+        if (recorder && recorder.state === 'recording') {
           recorder.stop();
         }
+        setIsRecording(false);
       }, 7000);
 
       try {
@@ -66,38 +88,44 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
         const transcript = await transcriptPromise;
         setRecordedVoice(transcript);
 
-        // Stop recording 1 second after speech recognition completes
+        // Stop recording after transcript is received
         setTimeout(() => {
-          if (recorder.state === 'recording') {
+          if (recorder && recorder.state === 'recording') {
             recorder.stop();
           }
-          clearTimeout(maxRecordingTimeout);
+          clearTimeout(maxTimeTimeout);
+          setIsRecording(false);
         }, 1000);
-      } catch (transcriptError) {
-        // If speech recognition fails, still stop recording after delay
-        setTimeout(() => {
-          if (recorder.state === 'recording') {
-            recorder.stop();
-          }
-          clearTimeout(maxRecordingTimeout);
-        }, 2000);
-        throw transcriptError;
+
+      } catch (transcriptError: any) {
+        console.error('Speech recognition failed:', transcriptError);
+        clearTimeout(maxTimeTimeout);
+
+        if (recorder && recorder.state === 'recording') {
+          recorder.stop();
+        }
+
+        setIsRecording(false);
+        throw new Error('SpeechRecognitionFailed');
       }
 
-      // Stop recording if still recording (should be stopped by timeout or transcript end)
-      if (recorder.state === 'recording') {
-        recorder.stop();
-      }
-
-      setIsRecording(false);
     } catch (error: any) {
       console.error('Error grabando voz:', error);
       setIsRecording(false);
-      setError(error.name === 'NotFoundError'
-        ? 'No se encontró micrófono. Verifica que esté conectado y habilitado.'
-        : error.name === 'NotAllowedError'
-        ? 'Permiso de micrófono denegado. Otorga permiso en la configuración del navegador.'
-        : 'Error al acceder al micrófono. Inténtalo de nuevo.');
+
+      let errorMessage = 'Error al grabar voz. Inténtalo de nuevo.';
+
+      if (error.message === 'NoMicrophone') {
+        errorMessage = 'No se detectó micrófono. Conecta un micrófono e inténtalo de nuevo.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage = 'Micrófono no encontrado. Verifica que esté conectado correctamente.';
+      } else if (error.name === 'NotAllowedError') {
+        errorMessage = 'Permiso de micrófono denegado. Haz clic en el icono del micrófono en la barra de direcciones y permite el acceso.';
+      } else if (error.message === 'SpeechRecognitionFailed') {
+        errorMessage = 'El reconocimiento de voz falló. Esto puede deberse a una conexión lenta o configuración del navegador.';
+      }
+
+      setError(errorMessage);
     }
   };
 
@@ -216,7 +244,12 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
                  <div className="flex-1">
                    <p className="font-medium text-green-800">Voz registrada</p>
                    <p className="text-sm text-green-600">"{recordedVoice}"</p>
-                   <p className="text-xs text-green-500 mt-1">Puedes escuchar, reintentar o eliminar la grabación</p>
+                   <p className="text-xs text-green-500 mt-1">
+                     {recordedAudio
+                       ? 'Puedes escuchar, reintentar o eliminar la grabación'
+                       : 'Grabación de audio falló, pero el texto se registró correctamente'
+                     }
+                   </p>
                  </div>
                </div>
 
@@ -228,7 +261,7 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
                      className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
                    >
                      <Mic className="w-4 h-4" />
-                     {isPlaying ? 'Reproduciendo...' : 'Escuchar Voz'}
+                     {isPlaying ? 'Reproduciendo...' : recordedAudio ? 'Escuchar Voz' : 'Solo Texto'}
                    </button>
                    <button
                      onClick={retryRecording}
