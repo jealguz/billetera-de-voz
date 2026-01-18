@@ -524,30 +524,48 @@ class EnhancedVoiceService {
         try {
           // Crear cliente primero
           storageService.findOrCreateClient(this.capitalizeName(person));
-          
-          console.log('🔄 Creando deuda en confirmación:', {
-            person,
-            amount,
-            rawText: confirmationData.rawText,
-            action,
-            confirmationData
-          });
 
-          // Luego agregar deuda
+          // Determinar el tipo de deuda basado en el texto original
           const debtRawText = confirmationData.rawText || '';
-          console.log('🔄 Texto que se pasará a handleAddDebt:', debtRawText);
+          console.log('🔄 Texto que se usará para determinar tipo:', debtRawText);
 
-          await this.handleAddDebt({
-            intent: 'add_debt',
-            entities: { person, amount, description },
-            confidence: 0.9,
-            rawText: debtRawText,
-            language: 'es',
-          } as ParsedCommand);
+          const normalizedText = debtRawText.toLowerCase();
+          const shouldBeOwing = normalizedText.includes('yo debo') ||
+                               normalizedText.includes('le debo') ||
+                               normalizedText.includes('debo a');
+
+          console.log('🔄 Debería ser owing:', shouldBeOwing, '- normalizedText:', normalizedText);
+
+          // Crear la deuda directamente aquí para asegurar el tipo correcto
+          try {
+            storageService.addDebt({
+              type: shouldBeOwing ? 'owing' : 'owed',
+              person: this.capitalizeName(person),
+              amount: amount,
+              description: description || 'Deuda registrada por voz',
+              date: new Date(),
+              status: 'pending',
+              paidAmount: 0,
+            });
+            console.log('✅ Deuda creada con tipo:', shouldBeOwing ? 'owing' : 'owed');
+          } catch (error: any) {
+            console.error('❌ Error creando deuda:', error);
+            throw error;
+          }
           
+          // Determinar el tipo de respuesta basado en el texto
+          const responseText = debtRawText.toLowerCase();
+          const isOwingResponse = responseText.includes('yo debo') ||
+                                 responseText.includes('le debo') ||
+                                 responseText.includes('debo a');
+
+          const responseMessage = isOwingResponse
+            ? `✅ Cliente creado y deuda registrada: le debes ${formatCurrency(amount)} a ${person}${description ? ` por "${description}"` : ''}.`
+            : `✅ Cliente creado y deuda registrada: ${person} te debe ${formatCurrency(amount)}${description ? ` por "${description}"` : ''}.`;
+
           return {
             success: true,
-            response: `✅ Cliente creado y deuda registrada: ${person} debe ${amount} pesos${description ? ` por "${description}"` : ''}.`,
+            response: responseMessage,
             data: storageService.getClientSummary(person),
           };
         } catch (error: any) {
