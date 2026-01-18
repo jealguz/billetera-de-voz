@@ -1,5 +1,6 @@
 // nlpService.ts - Versión sin dependencias de Node.js
 import { franc } from 'franc';
+import { formatCurrency } from '../utils/formatters';
 
 export interface ParsedCommand {
   intent: 'add_debt' | 'add_payment' | 'query_debt' | 'show_summary' | 'create_client' | 'unknown';
@@ -487,9 +488,9 @@ private isCommonWord(word: string): boolean {
                          parsed.rawText.toLowerCase().includes('yo le debo');
 
           if (isOwing) {
-            return `¡Perfecto! He registrado que le debes ${entities.amount} pesos a ${entities.person}${entities.description ? ` por "${entities.description}"` : ''}.`;
+            return `Listo, anoté que le debes ${formatCurrency(entities.amount)} a ${entities.person}${entities.description ? ` por ${entities.description}` : ''}.`;
           } else {
-            return `¡Perfecto! He registrado que ${entities.person} te debe ${entities.amount} pesos${entities.description ? ` por "${entities.description}"` : ''}.`;
+            return `Perfecto, queda registrado que ${entities.person} te debe ${formatCurrency(entities.amount)}${entities.description ? ` por ${entities.description}` : ''}.`;
           }
         }
         return '¿Quién te debe cuánto?';
@@ -501,9 +502,9 @@ private isCommonWord(word: string): boolean {
                              parsed.rawText.toLowerCase().includes('abono a');
 
           if (isMyPayment) {
-            return `¡Excelente! He registrado que le pagaste ${entities.amount} pesos a ${entities.person}.`;
+            return `Excelente, registrado el pago de ${formatCurrency(entities.amount)} a ${entities.person}.`;
           } else {
-            return `¡Genial! ${entities.person} te pagó ${entities.amount} pesos.`;
+            return `¡Qué bien! ${entities.person} te pagó ${formatCurrency(entities.amount)}.`;
           }
         }
         return '¿Quién te pagó cuánto?';
@@ -511,27 +512,27 @@ private isCommonWord(word: string): boolean {
       case 'query_debt':
         if (entities.person) {
           if (data?.amount) {
-            return `${entities.person} te debe ${data.amount} pesos${data.description ? ` por "${data.description}"` : ''}.`;
+            return `${entities.person} te debe ${formatCurrency(data.amount)}${data.description ? ` por ${data.description}` : ''}.`;
           }
-          return `${entities.person} no tiene deudas pendientes contigo.`;
+          return `${entities.person} no tiene deudas pendientes.`;
         }
         // Si no hay persona, verificar si es consulta general
         if (parsed.rawText.toLowerCase().includes('les debo') || parsed.rawText.toLowerCase().includes('debo a')) {
           if (data && Array.isArray(data)) {
             if (data.length === 0) {
-              return 'No tienes deudas pendientes con nadie.';
+              return 'No tienes deudas pendientes.';
             }
-            const list = data.map(d => `${d.person}: ${d.amount} pesos`).join(', ');
-            return `Le debes a estas personas: ${list}.`;
+            const list = data.map(d => `${d.person}: ${formatCurrency(d.amount)}`).join(', ');
+            return `Le debes a: ${list}.`;
           }
           return 'No tengo información de tus deudas.';
         } else if (parsed.rawText.toLowerCase().includes('me deben')) {
           if (data && Array.isArray(data)) {
             if (data.length === 0) {
-              return 'Nadie te debe dinero actualmente.';
+              return 'Nadie te debe dinero en este momento.';
             }
-            const list = data.map(d => `${d.person}: ${d.amount} pesos`).join(', ');
-            return `Estas personas te deben: ${list}.`;
+            const list = data.map(d => `${d.person}: ${formatCurrency(d.amount)}`).join(', ');
+            return `Te deben estas personas: ${list}.`;
           }
           return 'No tengo información de tus deudas.';
         }
@@ -543,7 +544,11 @@ private isCommonWord(word: string): boolean {
           const netText = net >= 0 ? 'a tu favor' : 'en tu contra';
           return `📊 Aquí tienes tu resumen: Te deben ${data.totalOwed} pesos en total. Tú debes ${data.totalOwing} pesos. Tu balance neto es de ${Math.abs(net)} pesos ${netText}.`;
         }
-        return 'Te muestro el resumen de tus finanzas...';
+        if (data?.personal) {
+          const { totalOwed, totalOwing, netBalance } = data.personal;
+          return `Tienes ${formatCurrency(totalOwed)} en deudas a tu favor y ${formatCurrency(totalOwing)} que debes. ${netBalance >= 0 ? `Estás ${formatCurrency(Math.abs(netBalance))} a favor.` : `Debes ${formatCurrency(Math.abs(netBalance))}.`}`;
+        }
+        return 'Aquí tienes el resumen de tus finanzas.';
         
       case 'create_client':
         if (entities.person) {
@@ -552,7 +557,7 @@ private isCommonWord(word: string): boolean {
         return '¿Cómo se llama el cliente que quieres agregar?';
         
       default:
-        return 'Lo siento, no entendí eso. Prueba diciendo algo como "José me debe 2000 pesos" o "Resumen de deudas".';
+        return 'No entendí eso. Prueba diciendo algo como "María me debe 2000 pesos" o "¿cuánto me debe Juan?".';
     }
   }
 }

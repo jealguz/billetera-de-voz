@@ -1,6 +1,7 @@
 import { nlpService, ParsedCommand } from './nlpService';
 import { storageService } from './storageService';
 import { userService } from './userService';
+import { formatCurrency } from '../utils/formatters';
 
 export interface VoiceResponse {
   success: boolean;
@@ -96,6 +97,21 @@ class EnhancedVoiceService {
       'pesos': 'pesos',
       'le debo a': 'le debo a',
       'yo le debo a': 'yo le debo a',
+
+      // Números grandes mal reconocidos
+      'quinientos': '500',
+      'seiscientos': '600',
+      'setecientos': '700',
+      'ochocientos': '800',
+      'novecientos': '900',
+      'quinientos mil': '500 mil',
+      'seiscientos mil': '600 mil',
+      'setecientos mil': '700 mil',
+      'ochocientos mil': '800 mil',
+      'novecientos mil': '900 mil',
+      'un millón': '1000000',
+      'dos millones': '2000000',
+      'tres millones': '3000000',
     };
 
     let corrected = transcript.toLowerCase();
@@ -236,7 +252,7 @@ class EnhancedVoiceService {
         if (!clientExists) {
           return {
             success: false,
-            response: `🤔 ${parsed.entities.person} no está registrado como cliente. ¿Deseas crear el cliente y registrar la deuda de ${parsed.entities.amount} pesos${parsed.entities.description ? ` por "${parsed.entities.description}"` : ''}?`,
+            response: `No conozco a ${parsed.entities.person} todavía. ¿Quieres que lo agregue como cliente y registre que te debe ${formatCurrency(parsed.entities.amount)}${parsed.entities.description ? ` por ${parsed.entities.description}` : ''}?`,
             parsed,
             needsConfirmation: true,
             confirmationData: {
