@@ -12,7 +12,6 @@ const VoiceAssistant: React.FC = () => {
      isSpeaking,
      startListening,
      stopListening,
-     lastMessage,
      waitingForConfirmation,
     } = useVoice();
 
