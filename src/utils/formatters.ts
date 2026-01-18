@@ -1,10 +1,6 @@
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount);
+  // Formato simple que dice "X pesos" en lugar de símbolo de moneda
+  return `${amount.toLocaleString('es-ES')} pesos`;
 };
 
 export const formatDate = (date: Date): string => {
