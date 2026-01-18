@@ -346,9 +346,15 @@ class EnhancedVoiceService {
     }
 
     // Determinar tipo: owed si "me debe", owing si "yo debo" o "le debo"
-    const isOwing = parsed.rawText.toLowerCase().includes('yo debo') ||
-                   parsed.rawText.toLowerCase().includes('le debo') ||
-                   parsed.rawText.toLowerCase().includes('debo a');
+    const rawText = parsed.rawText.toLowerCase();
+    const isOwing = rawText.includes('yo debo') ||
+                   rawText.includes('le debo') ||
+                   rawText.includes('debo a');
+
+    console.log('💰 Determinando tipo de deuda:');
+    console.log('💰 Texto:', parsed.rawText);
+    console.log('💰 isOwing:', isOwing, '(yo debo:', rawText.includes('yo debo'), 'le debo:', rawText.includes('le debo'), 'debo a:', rawText.includes('debo a'));
+    console.log('💰 Tipo de deuda:', isOwing ? 'owing (yo debo)' : 'owed (me deben)');
 
     try {
       storageService.addDebt({

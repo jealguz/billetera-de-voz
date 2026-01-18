@@ -324,9 +324,12 @@ private parseFullTextNumber(text: string): number | null {
   }
 
   // Detectar intención
- detectIntent(text: string): ParsedCommand['intent'] {
-   const lowerText = text.toLowerCase();
-   console.log('🔍 Detectando intención para:', lowerText);
+  detectIntent(text: string): ParsedCommand['intent'] {
+    const lowerText = text.toLowerCase();
+    console.log('🔍 Detectando intención para:', lowerText);
+
+    // Log each pattern check
+    console.log('🔍 Probando patrones...');
 
     // Patrón 1: Pagos a mí (me paga, etc.)
     if (/(me paga|me pagó|me abona|me abonó|me salda|me saldó|me dio|me dio el dinero)\s+\$?\d+/.test(lowerText)) {
@@ -340,21 +343,23 @@ private parseFullTextNumber(text: string): number | null {
       return 'add_payment';
     }
 
-    // Patrón 3: Deudas (me debe, etc.)
-    if (/(me debe|debe|yo debo|le debo|debo|qued[oó] debiendo|fio|prestó|dio fiado|prestó dinero)\s+\$?\d+/.test(lowerText)) {
-      console.log('✅ Intención: add_debt (debe)');
+    // Patrón 3a: Deudas específicas - "yo le debo a [persona]"
+    if (/yo le debo a\s+[a-záéíóúñ]+\s+[a-záéíóúñ]+\s+\$?\d+/.test(lowerText)) {
+      console.log('✅ Intención: add_debt (yo le debo a)');
       return 'add_debt';
     }
 
-    // Patrón 3b: Deudas con "le debo a [persona]"
-    if (/le debo a\s+[a-záéíóúñ]+\s+[a-záéíóúñ]+\s+\$?\d+/.test(lowerText)) {
+    // Patrón 3b: Deudas específicas - "le debo a [persona]"
+    const leDeboPattern = /le debo a\s+[a-záéíóúñ]+\s+[a-záéíóúñ]+\s+\$?\d+/;
+    console.log('🔍 Patrón "le debo a":', leDeboPattern.test(lowerText));
+    if (leDeboPattern.test(lowerText)) {
       console.log('✅ Intención: add_debt (le debo a)');
       return 'add_debt';
     }
 
-    // Patrón 3b: Deudas con "yo le debo a [persona]"
-    if (/yo le debo a\s+[a-záéíóúñ]+\s+[a-záéíóúñ]+\s+\$?\d+/.test(lowerText)) {
-      console.log('✅ Intención: add_debt (yo le debo a)');
+    // Patrón 3: Deudas generales (me debe, etc.) - sin "le debo" ni "yo le debo"
+    if (/(me debe|debe|qued[oó] debiendo|fio|prestó|dio fiado|prestó dinero)\s+\$?\d+/.test(lowerText)) {
+      console.log('✅ Intención: add_debt (debe general)');
       return 'add_debt';
     }
 
@@ -538,9 +543,14 @@ private isCommonWord(word: string): boolean {
       case 'add_debt':
         if (entities.person && entities.amount) {
           // Determinar si es deuda mía o del otro
-          const isOwing = parsed.rawText.toLowerCase().includes('le debo') ||
-                         parsed.rawText.toLowerCase().includes('debo a') ||
-                         parsed.rawText.toLowerCase().includes('yo le debo');
+          const rawText = parsed.rawText.toLowerCase();
+          const isOwing = rawText.includes('le debo') ||
+                         rawText.includes('debo a') ||
+                         rawText.includes('yo le debo');
+
+          console.log('📝 GenerateResponse - Determinando tipo de deuda:');
+          console.log('📝 Texto:', parsed.rawText);
+          console.log('📝 isOwing:', isOwing);
 
           if (isOwing) {
             return `Listo, anoté que le debes ${formatCurrency(entities.amount)} a ${entities.person}${entities.description ? ` por ${entities.description}` : ''}.`;
