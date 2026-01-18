@@ -53,18 +53,28 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
       // Start speech recognition in parallel
       const transcriptPromise = enhancedVoiceService.startListening();
 
-      // Stop recording after 3 seconds or when speech recognition ends
+      // Create a timeout promise for maximum recording time (5 seconds)
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          if (recorder.state === 'recording') {
+            recorder.stop();
+          }
+          resolve();
+        }, 5000); // Increased to 5 seconds
+      });
+
+      // Wait for transcript (up to 5 seconds)
+      const transcript = await transcriptPromise;
+      setRecordedVoice(transcript);
+
+      // Stop recording 1 second after speech recognition completes
       setTimeout(() => {
         if (recorder.state === 'recording') {
           recorder.stop();
         }
-      }, 3000);
+      }, 1000);
 
-      // Wait for transcript
-      const transcript = await transcriptPromise;
-      setRecordedVoice(transcript);
-
-      // Stop recording if still recording
+      // Stop recording if still recording (should be stopped by timeout or transcript end)
       if (recorder.state === 'recording') {
         recorder.stop();
       }
@@ -132,9 +142,9 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
           <h1 className="text-2xl font-bold text-gray-800 mb-2">
             Registro de Voz
           </h1>
-          <p className="text-gray-600">
-            Para mayor seguridad, registra tu voz diciendo tu nombre completo.
-          </p>
+           <p className="text-gray-600">
+             Para mayor seguridad, registra tu voz diciendo tu nombre completo (máximo 5 segundos).
+           </p>
         </div>
 
         <div className="space-y-6">
@@ -157,9 +167,9 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
               >
                 {isRecording ? (
                   <div className="flex items-center justify-center gap-2">
-                    <MicOff size={20} />
-                    Grabando... (3s)
-                  </div>
+                     <MicOff size={20} />
+                     Grabando... (máx 5s)
+                   </div>
                 ) : (
                   <div className="flex items-center justify-center gap-2">
                     <Mic size={20} />
