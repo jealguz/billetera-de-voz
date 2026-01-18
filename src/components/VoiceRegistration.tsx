@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mic, MicOff, CheckCircle } from 'lucide-react';
 import { enhancedVoiceService } from '../services/enhancedVoiceService';
 
@@ -11,14 +11,65 @@ interface VoiceRegistrationProps {
 const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegistered, onSkip }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVoice, setRecordedVoice] = useState<string | null>(null);
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup: stop recording if component unmounts
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    };
+  }, [mediaRecorder]);
 
   const startRecording = async () => {
     try {
       setIsRecording(true);
-      const transcript = await enhancedVoiceService.startListening();
-      setIsRecording(false);
+
+      // Get user media (microphone)
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      setMediaRecorder(recorder);
+
+      const audioChunks: Blob[] = [];
+
+      recorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      recorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        setRecordedAudio(audioBlob);
+
+        // Stop all tracks to free microphone
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      // Start recording
+      recorder.start();
+
+      // Start speech recognition in parallel
+      const transcriptPromise = enhancedVoiceService.startListening();
+
+      // Stop recording after 3 seconds or when speech recognition ends
+      setTimeout(() => {
+        if (recorder.state === 'recording') {
+          recorder.stop();
+        }
+      }, 3000);
+
+      // Wait for transcript
+      const transcript = await transcriptPromise;
       setRecordedVoice(transcript);
+
+      // Stop recording if still recording
+      if (recorder.state === 'recording') {
+        recorder.stop();
+      }
+
+      setIsRecording(false);
     } catch (error) {
       console.error('Error grabando voz:', error);
       setIsRecording(false);
@@ -29,9 +80,26 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
   };
 
   const playRecording = () => {
+    if (!recordedAudio) return;
+
     setIsPlaying(true);
-    // Simular reproducción
-    setTimeout(() => setIsPlaying(false), 2000);
+    const audioUrl = URL.createObjectURL(recordedAudio);
+    const audio = new Audio(audioUrl);
+
+    audio.onended = () => {
+      setIsPlaying(false);
+      URL.revokeObjectURL(audioUrl);
+    };
+
+    audio.onerror = () => {
+      setIsPlaying(false);
+      URL.revokeObjectURL(audioUrl);
+    };
+
+    audio.play().catch(() => {
+      setIsPlaying(false);
+      URL.revokeObjectURL(audioUrl);
+    });
   };
 
   const handleConfirm = () => {
@@ -107,14 +175,14 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={playRecording}
-                  disabled={isPlaying}
-                  className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 transition-colors font-medium"
-                >
-                  {isPlaying ? 'Reproduciendo...' : 'Reproducir'}
-                </button>
+               <div className="flex gap-3">
+                 <button
+                   onClick={playRecording}
+                   disabled={isPlaying || !recordedAudio}
+                   className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                 >
+                   {isPlaying ? 'Reproduciendo...' : 'Reproducir Voz'}
+                 </button>
                 <button
                   onClick={handleConfirm}
                   className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-medium"
