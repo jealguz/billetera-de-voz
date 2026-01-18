@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, CheckCircle } from 'lucide-react';
+import { Mic, MicOff, CheckCircle, Trash2, RotateCcw } from 'lucide-react';
 import { enhancedVoiceService } from '../services/enhancedVoiceService';
 
 interface VoiceRegistrationProps {
@@ -102,6 +102,20 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
     });
   };
 
+  const deleteRecording = () => {
+    setRecordedVoice(null);
+    setRecordedAudio(null);
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+      mediaRecorder.stop();
+    }
+    setMediaRecorder(null);
+  };
+
+  const retryRecording = () => {
+    deleteRecording();
+    startRecording();
+  };
+
   const handleConfirm = () => {
     if (recordedVoice) {
       onVoiceRegistered(recordedVoice);
@@ -167,29 +181,49 @@ const VoiceRegistration: React.FC<VoiceRegistrationProps> = ({ user, onVoiceRegi
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-200">
-                <CheckCircle className="w-6 h-6 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-800">Voz registrada</p>
-                  <p className="text-sm text-green-600">"{recordedVoice}"</p>
-                </div>
-              </div>
+               <div className="flex items-center gap-3 p-4 bg-green-50 rounded-2xl border border-green-200">
+                 <CheckCircle className="w-6 h-6 text-green-600" />
+                 <div className="flex-1">
+                   <p className="font-medium text-green-800">Voz registrada</p>
+                   <p className="text-sm text-green-600">"{recordedVoice}"</p>
+                   <p className="text-xs text-green-500 mt-1">Puedes escuchar, reintentar o eliminar la grabación</p>
+                 </div>
+               </div>
 
-               <div className="flex gap-3">
+               <div className="space-y-3">
+                 <div className="flex gap-2">
+                   <button
+                     onClick={playRecording}
+                     disabled={isPlaying || !recordedAudio}
+                     className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
+                   >
+                     <Mic className="w-4 h-4" />
+                     {isPlaying ? 'Reproduciendo...' : 'Escuchar Voz'}
+                   </button>
+                   <button
+                     onClick={retryRecording}
+                     disabled={isRecording}
+                     className="bg-orange-600 text-white py-3 px-4 rounded-xl hover:bg-orange-700 disabled:bg-orange-400 disabled:cursor-not-allowed transition-colors font-medium"
+                     title="Reintentar grabación"
+                   >
+                     <RotateCcw className="w-4 h-4" />
+                   </button>
+                   <button
+                     onClick={deleteRecording}
+                     className="bg-red-600 text-white py-3 px-4 rounded-xl hover:bg-red-700 transition-colors font-medium"
+                     title="Eliminar grabación"
+                   >
+                     <Trash2 className="w-4 h-4" />
+                   </button>
+                 </div>
                  <button
-                   onClick={playRecording}
-                   disabled={isPlaying || !recordedAudio}
-                   className="flex-1 bg-gray-600 text-white py-3 px-4 rounded-xl hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium"
+                   onClick={handleConfirm}
+                   className="w-full bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
                  >
-                   {isPlaying ? 'Reproduciendo...' : 'Reproducir Voz'}
+                   <CheckCircle className="w-4 h-4" />
+                   Confirmar y Continuar
                  </button>
-                <button
-                  onClick={handleConfirm}
-                  className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl hover:bg-blue-700 transition-colors font-medium"
-                >
-                  Confirmar
-                </button>
-              </div>
+               </div>
             </div>
           )}
 
