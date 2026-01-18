@@ -353,10 +353,11 @@ class EnhancedVoiceService {
                    rawText.includes('le debo') ||
                    rawText.includes('debo a');
 
-    console.log('💰 Determinando tipo de deuda:');
-    console.log('💰 Texto:', parsed.rawText);
-    console.log('💰 isOwing:', isOwing, '(yo debo:', rawText.includes('yo debo'), 'le debo:', rawText.includes('le debo'), 'debo a:', rawText.includes('debo a'));
-    console.log('💰 Tipo de deuda:', isOwing ? 'owing (yo debo)' : 'owed (me deben)');
+    console.log('💰 Determinando tipo de deuda en handleAddDebt:');
+    console.log('💰 Texto recibido:', parsed.rawText);
+    console.log('💰 rawText procesado:', rawText);
+    console.log('💰 Condiciones - yo debo:', rawText.includes('yo debo'), 'le debo:', rawText.includes('le debo'), 'debo a:', rawText.includes('debo a'));
+    console.log('💰 isOwing:', isOwing, '- Tipo:', isOwing ? 'owing (TÚ debes)' : 'owed (te deben)');
 
     try {
       storageService.addDebt({
@@ -519,6 +520,13 @@ class EnhancedVoiceService {
           // Crear cliente primero
           storageService.findOrCreateClient(this.capitalizeName(person));
           
+          console.log('🔄 Creando deuda en confirmación:', {
+            person,
+            amount,
+            rawText: confirmationData.rawText,
+            action
+          });
+
           // Luego agregar deuda
           await this.handleAddDebt({
             intent: 'add_debt',

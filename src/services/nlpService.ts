@@ -550,7 +550,9 @@ private isCommonWord(word: string): boolean {
 
           console.log('📝 GenerateResponse - Determinando tipo de deuda:');
           console.log('📝 Texto:', parsed.rawText);
-          console.log('📝 isOwing:', isOwing);
+          console.log('📝 rawText procesado:', rawText);
+          console.log('📝 Condiciones - le debo:', rawText.includes('le debo'), 'debo a:', rawText.includes('debo a'), 'yo le debo:', rawText.includes('yo le debo'));
+          console.log('📝 isOwing:', isOwing, '- Respuesta:', isOwing ? 'le debes' : 'te debe');
 
           if (isOwing) {
             return `Listo, anoté que le debes ${formatCurrency(entities.amount)} a ${entities.person}${entities.description ? ` por ${entities.description}` : ''}.`;
