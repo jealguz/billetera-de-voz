@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 const Header: React.FC = () => {
   const { isListening } = useVoiceContext();
-  const { isInstallable, installPWA } = usePWAInstall();
+  const { isInstallable, isInstalled, installPWA } = usePWAInstall();
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);
@@ -120,7 +120,7 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
-            {isInstallable && (
+            {!isInstalled && (
               <button
                 onClick={installPWA}
                 className="p-2 hover:bg-green-100 rounded-lg"
