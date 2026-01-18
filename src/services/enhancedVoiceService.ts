@@ -86,24 +86,61 @@ class EnhancedVoiceService {
       'luis': 'luis',
       'pedro': 'pedro',
 
-      // Frases comunes mal reconocidas
+      // Frases comunes mal reconocidas (alta prioridad)
       'medebe': 'me debe',
+      'ledebe': 'le debe',
       'ledebo': 'le debo',
       'yo le debo': 'yo le debo',
       'abono a': 'abono a',
       'le abono': 'le abono',
+      'pago a': 'pago a',
+      'le pago': 'le pago',
+      'le pague': 'le pagué',
+      'ya le pague': 'ya le pagué',
+      'ya pague': 'ya pagué',
       'mil pesos': 'mil pesos',
       'mil': 'mil',
       'pesos': 'pesos',
       'le debo a': 'le debo a',
       'yo le debo a': 'yo le debo a',
+      'me debe a mi': 'me debe a mí',
+      'me debe ami': 'me debe a mí',
 
-      // Números grandes mal reconocidos
-      'quinientos': '500',
-      'seiscientos': '600',
-      'setecientos': '700',
-      'ochocientos': '800',
-      'novecientos': '900',
+      // Correcciones de monedas y cantidades
+      'dolares': 'pesos',
+      'dollar': 'pesos',
+      'dólar': 'pesos',
+      'euros': 'pesos',
+      'moneda': 'pesos',
+      'plata': 'pesos',
+      'dinero': 'pesos',
+      'guarani': 'pesos',
+      'real': 'pesos',
+      'sol': 'pesos',
+
+      // Variaciones de "pesos" (moneda local)
+      'peso': 'pesos',
+      'pesito': 'pesos',
+      'pesitos': 'pesos',
+      'billete': 'pesos',
+      'billetes': 'pesos',
+      'luca': 'mil pesos',
+      'paloma': 'mil pesos',
+      'palo': 'mil pesos',
+      'varos': 'pesos',
+      'varito': 'mil pesos',
+      'ficha': 'mil pesos',
+      'lucas': 'mil pesos',
+      'palos': 'mil pesos',
+      'morito': 'mil pesos',
+      'moritos': 'mil pesos',
+
+      // Correcciones específicas de transcripción
+      'dólares americanos': 'pesos',
+      'moneda americana': 'pesos',
+      'divisas': 'pesos',
+
+      // Números grandes mal reconocidos (expandido)
       'quinientos mil': '500 mil',
       'seiscientos mil': '600 mil',
       'setecientos mil': '700 mil',
@@ -112,6 +149,57 @@ class EnhancedVoiceService {
       'un millón': '1000000',
       'dos millones': '2000000',
       'tres millones': '3000000',
+      'cuatro millones': '4000000',
+      'cinco millones': '5000000',
+      'diez mil': '10000',
+      'veinte mil': '20000',
+      'treinta mil': '30000',
+      'cuarenta mil': '40000',
+      'cincuenta mil': '50000',
+      'sesenta mil': '60000',
+      'setenta mil': '70000',
+      'ochenta mil': '80000',
+      'noventa mil': '90000',
+
+      // Números escritos como palabras
+      'cien': '100',
+      'ciento': '100',
+      'doscientos': '200',
+      'trescientos': '300',
+      'cuatrocientos': '400',
+      'quinientos': '500',
+      'seiscientos': '600',
+      'setecientos': '700',
+      'ochocientos': '800',
+      'novecientos': '900',
+      'cien mil': '100000',
+      'ciento mil': '100000',
+
+      // Variaciones dialectales comunes
+      'usté': 'usted',
+      'ustede': 'usted',
+      'vos': 'tú',
+      'boludo': 'amigo',  // evitar ofensivas, pero corregir contexto
+      'che': 'oye',
+      'mae': 'mamá',
+      'papi': 'papá',
+      'tío': 'señor',
+      'tía': 'señora',
+
+      // Frases completas comunes
+      'no me debe nada': 'no me debe nada',
+      'ya me pagó': 'ya me pagó',
+      'ya pagué': 'ya pagué',
+      'está al día': 'está al día',
+      'estamos a mano': 'estamos a mano',
+      'saldo cero': 'saldo cero',
+
+      // Expresiones de tiempo
+      'el mes pasado': 'el mes pasado',
+      'la semana pasada': 'la semana pasada',
+      'hace una semana': 'hace una semana',
+      'hace un mes': 'hace un mes',
+      'desde hace tiempo': 'desde hace tiempo',
     };
 
     let corrected = transcript.toLowerCase();

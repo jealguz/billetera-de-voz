@@ -172,21 +172,31 @@ private capitalizeName(name: string): string {
     try {
       console.log('🔍 Buscando cantidad en:', text);
 
-    // Método 1: Buscar números directos o con $ (ej. 500, $3000, 10 000)
-    const numberMatch = text.match(/(\$?\d+(?:\s+\d+)*)/);
+    // Método 1: Buscar números directos o con $ (ej. 500, $3000, 10 000, 500 mil)
+    const numberMatch = text.match(/(\$?\d+(?:\s+\d+)*(?:\s+(?:mil|millones?|millón))?)/i);
     if (numberMatch) {
       const cleanedNumber = numberMatch[1].replace(/\s+/g, '').replace(/\$/g, '');
       const baseAmount = parseInt(cleanedNumber, 10);
 
-      // Verificar si hay multiplicadores después (ej. "$3000 mil" -> 3000000, "500 mil" -> 500000)
+      // Verificar si hay multiplicadores en el match mismo o después
       const lowerText = text.toLowerCase();
-      const afterNumber = lowerText.split(numberMatch[0])[1]?.trim() || '';
+      const matchText = numberMatch[0].toLowerCase();
 
-      if (afterNumber.startsWith('mil')) {
+      if (matchText.includes('mil') && !matchText.includes('millon')) {
         console.log('💰 Cantidad encontrada (número + mil):', baseAmount * 1000);
         return baseAmount * 1000;
-      } else if (afterNumber.startsWith('millon')) {
+      } else if (matchText.includes('millon')) {
         console.log('💰 Cantidad encontrada (número + millón):', baseAmount * 1000000);
+        return baseAmount * 1000000;
+      }
+
+      // Verificar multiplicadores separados (legacy)
+      const afterNumber = lowerText.split(numberMatch[0])[1]?.trim() || '';
+      if (afterNumber.startsWith('mil')) {
+        console.log('💰 Cantidad encontrada (número + mil separado):', baseAmount * 1000);
+        return baseAmount * 1000;
+      } else if (afterNumber.startsWith('millon')) {
+        console.log('💰 Cantidad encontrada (número + millón separado):', baseAmount * 1000000);
         return baseAmount * 1000000;
       }
 
@@ -397,7 +407,46 @@ private parseFullTextNumber(text: string): number | null {
 
    console.log('❌ Intención no reconocida');
    return 'unknown';
- }
+  }
+
+  // Aplicar correcciones básicas de números y monedas
+  private applyBasicCorrections(text: string): string {
+    const corrections: { [key: string]: string } = {
+      // Números escritos
+      'quinientos mil': '500 mil',
+      'seiscientos mil': '600 mil',
+      'setecientos mil': '700 mil',
+      'ochocientos mil': '800 mil',
+      'novecientos mil': '900 mil',
+      'un millón': '1000000',
+      'dos millones': '2000000',
+      'tres millones': '3000000',
+
+      // Monedas
+      'dólares': 'pesos',
+      'dolares': 'pesos',
+      'dollar': 'pesos',
+      'dólar': 'pesos',
+      'euros': 'pesos',
+      'usd': 'pesos',
+
+      // Dialectos
+      'luca': 'mil pesos',
+      'paloma': 'mil pesos',
+      'palo': 'mil pesos',
+      'varos': 'pesos',
+      'varito': 'mil pesos',
+    };
+
+    let corrected = text.toLowerCase();
+
+    // Aplicar correcciones
+    for (const [wrong, correct] of Object.entries(corrections)) {
+      corrected = corrected.replace(new RegExp(`\\b${wrong}\\b`, 'gi'), correct);
+    }
+
+    return corrected;
+  }
 
   // Procesar comando completo
   parseCommand(text: string): ParsedCommand {
@@ -406,11 +455,14 @@ private parseFullTextNumber(text: string): number | null {
       return this.cache.get(cacheKey)!;
     }
 
-    const language = this.detectLanguage(text);
-    const intent = this.detectIntent(text);
-    let person = this.extractPerson(text);
-    const amount = this.extractAmount(text);
-    const description = this.extractDescription(text);
+    // Aplicar correcciones básicas antes de procesar
+    let processedText = this.applyBasicCorrections(text);
+
+    const language = this.detectLanguage(processedText);
+    const intent = this.detectIntent(processedText);
+    let person = this.extractPerson(processedText);
+    const amount = this.extractAmount(processedText);
+    const description = this.extractDescription(processedText);
 
     // Para consultas generales de deudas, forzar person = null
     if (intent === 'query_debt' && text.toLowerCase().includes('personas')) {
