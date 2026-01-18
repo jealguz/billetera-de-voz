@@ -24,7 +24,7 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onRegister }) => {
   const [error, setError] = useState('');
   const [showVoiceRegistration, setShowVoiceRegistration] = useState(false);
   const [userData, setUserData] = useState<NewUser | null>(null);
-  const { isInstallable, installPWA } = usePWAInstall();
+  const { isInstalled, installPWA } = usePWAInstall();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +74,7 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onRegister }) => {
   return (
     <div className="min-h-screen bg-[#282580] flex items-center justify-center p-4">
       {/* Install Banner */}
-      {isInstallable && (
+      {!isInstalled && (
         <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

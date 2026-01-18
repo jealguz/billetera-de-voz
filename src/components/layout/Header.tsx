@@ -9,7 +9,7 @@ import { toast } from 'react-hot-toast';
 
 const Header: React.FC = () => {
   const { isListening } = useVoiceContext();
-  const { isInstallable, isInstalled, installPWA } = usePWAInstall();
+  const { isInstalled, installPWA } = usePWAInstall();
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showVoiceModal, setShowVoiceModal] = useState(false);

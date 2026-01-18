@@ -14,7 +14,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { isInstallable, installPWA } = usePWAInstall();
+  const { isInstalled, installPWA } = usePWAInstall();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +34,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   return (
     <div className="min-h-screen bg-[#282580] flex items-center justify-center p-4">
       {/* Install Banner */}
-      {isInstallable && (
+      {!isInstalled && (
         <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

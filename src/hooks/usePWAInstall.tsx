@@ -15,7 +15,7 @@ export const usePWAInstall = () => {
 
     // Método 3: Verificar si está en un navegador móvil y no tiene barra de direcciones
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    const hasMinimalUI = window.innerHeight === screen.height && window.innerWidth === screen.width;
+    const hasMinimalUI = window.innerHeight >= window.screen.height - 100 && window.innerWidth >= window.screen.width - 100;
 
     const installed = isInStandalone || isInStandaloneMode || (isMobile && hasMinimalUI);
 
@@ -79,7 +79,7 @@ export const usePWAInstall = () => {
       window.removeEventListener('appinstalled', handleAppInstalled);
       mediaQuery.removeEventListener('change', handleDisplayModeChange);
     };
-  }, []);
+  }, [isInstalled]);
 
   const installPWA = async () => {
     if (deferredPrompt) {
