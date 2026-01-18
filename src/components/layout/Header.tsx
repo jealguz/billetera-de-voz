@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { Settings, RotateCcw, LogOut } from 'lucide-react';
+import { Settings, RotateCcw, LogOut, Download } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/storageService';
+import { usePWAInstall } from '../../hooks/usePWAInstall';
 import { toast } from 'react-hot-toast';
 
 const Header: React.FC = () => {
   const { isListening } = useVoiceContext();
+  const { isInstallable, installPWA } = usePWAInstall();
   const [showVoiceSettings, setShowVoiceSettings] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
@@ -194,6 +196,15 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
+            {isInstallable && (
+              <button
+                onClick={installPWA}
+                className="p-2 hover:bg-green-100 rounded-lg"
+                title="Instalar app"
+              >
+                <Download size={20} className="text-green-600" />
+              </button>
+            )}
             <button
               onClick={() => setShowBackupModal(true)}
               className="p-2 hover:bg-blue-100 rounded-lg"
@@ -208,21 +219,21 @@ const Header: React.FC = () => {
             >
               <RotateCcw size={20} className="text-red-600" />
             </button>
-           <button
-             onClick={() => setShowVoiceSettings(true)}
-             className="p-2 hover:bg-gray-100 rounded-lg"
-             title="Configuración de voz"
-           >
-             <Settings size={20} className="text-gray-600" />
-           </button>
-           <button
-             onClick={handleLogout}
-             className="p-2 hover:bg-red-100 rounded-lg"
-             title="Cerrar sesión"
-           >
-             <LogOut size={20} className="text-red-600" />
-           </button>
-         </div>
+            <button
+              onClick={() => setShowVoiceSettings(true)}
+              className="p-2 hover:bg-gray-100 rounded-lg"
+              title="Configuración de voz"
+            >
+              <Settings size={20} className="text-gray-600" />
+            </button>
+            <button
+              onClick={handleLogout}
+              className="p-2 hover:bg-red-100 rounded-lg"
+              title="Cerrar sesión"
+            >
+              <LogOut size={20} className="text-red-600" />
+            </button>
+          </div>
 
           {/* Modal de configuración de voz */}
            {showVoiceSettings && (
