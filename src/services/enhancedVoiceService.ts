@@ -247,21 +247,30 @@ class EnhancedVoiceService {
       console.log('🔍 Comando parseado:', parsed);
       
       // 2. Verificar si necesita confirmación (cliente no existe)
-      if (parsed.intent === 'add_debt' && parsed.entities.person && parsed.entities.amount) {
+      if ((parsed.intent === 'add_debt' || parsed.intent === 'add_payment') && parsed.entities.person && parsed.entities.amount) {
+        console.log('🔍 Verificando confirmación para:', parsed.entities.person, 'monto:', parsed.entities.amount);
         const clientExists = this.checkClientExists(parsed.entities.person);
+        console.log('🔍 Cliente existe:', clientExists);
+
         if (!clientExists) {
+          console.log('⚠️ Cliente no existe, solicitando confirmación');
+          const isPayment = parsed.intent === 'add_payment';
+          const actionText = isPayment ? 'registre el pago' : 'registre que te debe';
+
           return {
             success: false,
-            response: `No conozco a ${parsed.entities.person} todavía. ¿Quieres que lo agregue como cliente y registre que te debe ${formatCurrency(parsed.entities.amount)}${parsed.entities.description ? ` por ${parsed.entities.description}` : ''}?`,
+            response: `No conozco a ${parsed.entities.person} todavía. ¿Quieres que lo agregue como cliente y ${actionText} ${formatCurrency(parsed.entities.amount)}${parsed.entities.description ? ` por ${parsed.entities.description}` : ''}?`,
             parsed,
             needsConfirmation: true,
             confirmationData: {
-              action: 'add_debt',
+              action: parsed.intent,
               person: parsed.entities.person,
               amount: parsed.entities.amount,
               description: parsed.entities.description,
             }
           };
+        } else {
+          console.log('✅ Cliente existe, procesando deuda normalmente');
         }
       }
       
@@ -332,9 +341,24 @@ class EnhancedVoiceService {
   private checkClientExists(personName: string): boolean {
     if (!personName) return false;
     const clients = storageService.getClients();
-    return clients.some(client => 
-      client.name.toLowerCase() === personName.toLowerCase()
-    );
+    const normalizedPersonName = personName.toLowerCase().trim();
+
+    console.log('🔍 Verificando si existe cliente:', normalizedPersonName);
+    console.log('📋 Clientes registrados:', clients.map(c => c.name.toLowerCase()));
+
+    // Búsqueda más flexible: verificar si contiene el nombre o viceversa
+    const exists = clients.some(client => {
+      const normalizedClientName = client.name.toLowerCase().trim();
+      const contains = normalizedClientName.includes(normalizedPersonName) ||
+                      normalizedPersonName.includes(normalizedClientName);
+      if (contains) {
+        console.log('✅ Cliente encontrado:', client.name);
+      }
+      return contains;
+    });
+
+    console.log('🔍 Resultado checkClientExists:', exists);
+    return exists;
   }
   
   private async handleAddDebt(parsed: ParsedCommand): Promise<boolean> {
