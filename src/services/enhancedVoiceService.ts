@@ -14,6 +14,7 @@ export interface VoiceResponse {
     person: string;
     amount?: number;
     description?: string;
+    rawText?: string;
   };
 }
 
@@ -241,6 +242,7 @@ class EnhancedVoiceService {
               person: parsed.entities.person,
               amount: parsed.entities.amount,
               description: parsed.entities.description,
+              rawText: parsed.rawText, // Necesario para determinar dirección de deuda
             }
           };
         } else {
@@ -522,7 +524,7 @@ class EnhancedVoiceService {
             intent: 'add_debt',
             entities: { person, amount, description },
             confidence: 0.9,
-            rawText: '',
+            rawText: confirmationData.rawText || '', // Usar el texto original para determinar dirección
             language: 'es',
           } as ParsedCommand);
           

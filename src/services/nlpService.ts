@@ -172,10 +172,10 @@ private capitalizeName(name: string): string {
     try {
       console.log('🔍 Buscando cantidad en:', text);
 
-    // Método 1: Buscar números directos o con $ (ej. 500, $3000, 10 000, 500 mil)
-    const numberMatch = text.match(/(\$?\d+(?:\s+\d+)*(?:\s+(?:mil|millones?|millón))?)/i);
+    // Método 1: Buscar números directos o con $ (ej. 500, $3000, 10 000, 160,000, 500 mil)
+    const numberMatch = text.match(/(\$?\d+(?:[,\s]\d+)*(?:\s+(?:mil|millones?|millón))?)/i);
     if (numberMatch) {
-      const cleanedNumber = numberMatch[1].replace(/\s+/g, '').replace(/\$/g, '');
+      const cleanedNumber = numberMatch[1].replace(/[\s,]/g, '').replace(/\$/g, '');
       const baseAmount = parseInt(cleanedNumber, 10);
 
       // Verificar si hay multiplicadores en el match mismo o después
