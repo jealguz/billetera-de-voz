@@ -22,6 +22,18 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen p-6 animate-fade-in">
       <div className="max-w-4xl mx-auto space-y-8">
+        {/* App Branding Header */}
+        <div className="text-center py-4">
+          <div className="w-12 h-12 mx-auto mb-2 shadow-md rounded-lg overflow-hidden bg-white">
+            <img
+              src="/logo192.png"
+              alt="Wallet Voice Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Wallet Voice</h1>
+        </div>
+
         {showBackupReminder && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <div className="flex items-start gap-3">
