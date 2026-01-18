@@ -141,18 +141,7 @@ class EnhancedVoiceService {
         return;
       }
 
-      // Verificar si hay voz personalizada para esta respuesta
-      const customVoice = this.getCustomVoiceForText(text);
-      if (customVoice) {
-        // Reproducir audio personalizado
-        this.playCustomVoice(customVoice).then(resolve).catch(() => {
-          // Fallback a síntesis si audio falla
-          this.fallbackSynthesis(text).then(resolve).catch(reject);
-        });
-        return;
-      }
-
-      // Usar síntesis estándar
+      // Usar síntesis estándar simplificada
       this.fallbackSynthesis(text).then(resolve).catch(reject);
     });
   }
@@ -207,27 +196,10 @@ class EnhancedVoiceService {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
 
-      // Configuración para voz natural y clara
+      // Usar configuración simple por defecto
       utterance.rate = 0.9;
-      utterance.pitch = 1.1;
+      utterance.pitch = 1.0;
       utterance.volume = 1.0;
-
-      // Seleccionar voz preferida
-      const voices = speechSynthesis.getVoices();
-      const user = userService.getCurrentUser();
-      let selectedVoice = null;
-
-      if (user?.voicePreference) {
-        selectedVoice = voices.find(voice => voice.voiceURI === user.voicePreference);
-      }
-
-      if (!selectedVoice && voices.length > 0) {
-        selectedVoice = voices[0];
-      }
-
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      }
 
       utterance.onend = () => resolve();
       utterance.onerror = (event) => reject(event);
@@ -240,17 +212,19 @@ class EnhancedVoiceService {
   
   async processNaturalCommand(text: string): Promise<VoiceResponse> {
     console.log('📝 Procesando comando:', text);
-    
+
     try {
       // 1. Parsear el comando con NLP
       const parsed = nlpService.parseCommand(text);
       console.log('🔍 Comando parseado:', parsed);
+      console.log('🔍 Intent:', parsed.intent, 'Person:', parsed.entities.person, 'Amount:', parsed.entities.amount);
       
       // 2. Verificar si necesita confirmación (cliente no existe)
       if ((parsed.intent === 'add_debt' || parsed.intent === 'add_payment') && parsed.entities.person && parsed.entities.amount) {
         console.log('🔍 Verificando confirmación para:', parsed.entities.person, 'monto:', parsed.entities.amount);
         const clientExists = this.checkClientExists(parsed.entities.person);
         console.log('🔍 Cliente existe:', clientExists);
+        console.log('🔍 Forzando confirmación para testing...');
 
         if (!clientExists) {
           console.log('⚠️ Cliente no existe, solicitando confirmación');
@@ -344,18 +318,21 @@ class EnhancedVoiceService {
     const normalizedPersonName = personName.toLowerCase().trim();
 
     console.log('🔍 Verificando si existe cliente:', normalizedPersonName);
-    console.log('📋 Clientes registrados:', clients.map(c => c.name.toLowerCase()));
+    console.log('📋 Clientes registrados:', clients.map(c => c.name));
 
-    // Búsqueda más flexible: verificar si contiene el nombre o viceversa
-    const exists = clients.some(client => {
-      const normalizedClientName = client.name.toLowerCase().trim();
-      const contains = normalizedClientName.includes(normalizedPersonName) ||
-                      normalizedPersonName.includes(normalizedClientName);
-      if (contains) {
-        console.log('✅ Cliente encontrado:', client.name);
-      }
-      return contains;
-    });
+    // Búsqueda exacta primero
+    let exists = clients.some(client =>
+      client.name.toLowerCase().trim() === normalizedPersonName
+    );
+
+    // Si no encuentra exacto, buscar parcial
+    if (!exists) {
+      exists = clients.some(client => {
+        const clientName = client.name.toLowerCase().trim();
+        return clientName.includes(normalizedPersonName) ||
+               normalizedPersonName.includes(clientName);
+      });
+    }
 
     console.log('🔍 Resultado checkClientExists:', exists);
     return exists;

@@ -457,12 +457,15 @@ private parseFullTextNumber(text: string): number | null {
 
     // Aplicar correcciones básicas antes de procesar
     let processedText = this.applyBasicCorrections(text);
+    console.log('🔍 Texto procesado:', processedText);
 
     const language = this.detectLanguage(processedText);
     const intent = this.detectIntent(processedText);
     let person = this.extractPerson(processedText);
     const amount = this.extractAmount(processedText);
     const description = this.extractDescription(processedText);
+
+    console.log('🔍 NLP Resultado:', { intent, person, amount, description, language });
 
     // Para consultas generales de deudas, forzar person = null
     if (intent === 'query_debt' && text.toLowerCase().includes('personas')) {
