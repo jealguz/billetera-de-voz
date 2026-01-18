@@ -229,21 +229,26 @@ class EnhancedVoiceService {
 
         if (!clientExists) {
           console.log('⚠️ Cliente no existe, solicitando confirmación');
+          console.log('⚠️ parsed.rawText:', parsed.rawText);
           const isPayment = parsed.intent === 'add_payment';
           const actionText = isPayment ? 'registre el pago' : 'registre que te debe';
+
+          const confirmationDataToSave = {
+            action: parsed.intent,
+            person: parsed.entities.person,
+            amount: parsed.entities.amount,
+            description: parsed.entities.description,
+            rawText: parsed.rawText, // Necesario para determinar dirección de deuda
+          };
+
+          console.log('⚠️ confirmationData que se guardará:', confirmationDataToSave);
 
           return {
             success: false,
             response: `No conozco a ${parsed.entities.person} todavía. ¿Quieres que lo agregue como cliente y ${actionText} ${formatCurrency(parsed.entities.amount)}${parsed.entities.description ? ` por ${parsed.entities.description}` : ''}?`,
             parsed,
             needsConfirmation: true,
-            confirmationData: {
-              action: parsed.intent,
-              person: parsed.entities.person,
-              amount: parsed.entities.amount,
-              description: parsed.entities.description,
-              rawText: parsed.rawText, // Necesario para determinar dirección de deuda
-            }
+            confirmationData: confirmationDataToSave
           };
         } else {
           console.log('✅ Cliente existe, procesando deuda normalmente');
@@ -524,15 +529,19 @@ class EnhancedVoiceService {
             person,
             amount,
             rawText: confirmationData.rawText,
-            action
+            action,
+            confirmationData
           });
 
           // Luego agregar deuda
+          const debtRawText = confirmationData.rawText || '';
+          console.log('🔄 Texto que se pasará a handleAddDebt:', debtRawText);
+
           await this.handleAddDebt({
             intent: 'add_debt',
             entities: { person, amount, description },
             confidence: 0.9,
-            rawText: confirmationData.rawText || '', // Usar el texto original para determinar dirección
+            rawText: debtRawText,
             language: 'es',
           } as ParsedCommand);
           
