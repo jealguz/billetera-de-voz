@@ -23,7 +23,7 @@ const Header: React.FC = () => {
     };
 
     loadVoices();
-    speechSynthesis.onvoiceschanged = loadVoices;
+    speechSynthesis.onvoiceschanged = loadVoices;  
   }, []);
 
   // Group voices by language
