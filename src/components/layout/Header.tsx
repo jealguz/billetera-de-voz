@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Settings, RotateCcw, LogOut, Download } from 'lucide-react';
+import { Settings, RotateCcw, LogOut, Download, Volume2 } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/storageService';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+import { enhancedVoiceService } from '../../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
 
 const Header: React.FC = () => {
@@ -11,8 +12,27 @@ const Header: React.FC = () => {
   const { isInstallable, installPWA } = usePWAInstall();
   const [showResetModal, setShowResetModal] = useState(false);
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [resetType, setResetType] = useState<'debts' | 'payments' | 'all' | null>(null);
   const [confirmStep, setConfirmStep] = useState(1);
+  const [systemVoices, setSystemVoices] = useState<any[]>([]);
+
+  // Cargar voces del sistema
+  React.useEffect(() => {
+    const loadSystemVoices = () => {
+      const voices = enhancedVoiceService.getAvailableVoices();
+      const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+      setSystemVoices(spanishVoices);
+    };
+
+    // Cargar voces inmediatamente y cuando estén disponibles
+    loadSystemVoices();
+    speechSynthesis.onvoiceschanged = loadSystemVoices;
+
+    return () => {
+      speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   const handleExportData = () => {
     const data = storageService.exportData();
@@ -161,6 +181,15 @@ const Header: React.FC = () => {
             >
               <RotateCcw size={20} className="text-red-600" />
             </button>
+            {systemVoices.length > 0 && (
+              <button
+                onClick={() => setShowVoiceModal(true)}
+                className="p-2 hover:bg-purple-100 rounded-lg"
+                title="Cambiar voz del sistema"
+              >
+                <Volume2 size={20} className="text-purple-600" />
+              </button>
+            )}
 
             <button
               onClick={handleLogout}
@@ -307,9 +336,43 @@ const Header: React.FC = () => {
               </div>
             </div>
           )}
-      </div>
-    </header>
-  );
-};
+
+          {/* Modal de selección de voz */}
+          {showVoiceModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-bold mb-4 text-purple-600">🔊 Voces del Sistema</h3>
+                <p className="text-gray-700 mb-4">
+                  Selecciona una voz española para el asistente. Estas voces funcionan sin conexión a internet.
+                </p>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {systemVoices.map((voice, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        enhancedVoiceService.setPreferredVoice(voice.voiceURI);
+                        setShowVoiceModal(false);
+                        toast.success(`Voz cambiada a: ${voice.name}`);
+                      }}
+                      className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-colors"
+                    >
+                      <div className="font-medium text-gray-800">{voice.name}</div>
+                      <div className="text-sm text-gray-600">{voice.lang}</div>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowVoiceModal(false)}
+                  className="w-full mt-4 bg-gray-600 text-white py-2 rounded-lg hover:bg-gray-700"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )}
+       </div>
+     </header>
+   );
+ };
 
 export default Header;

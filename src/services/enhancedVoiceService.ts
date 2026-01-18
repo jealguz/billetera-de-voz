@@ -197,13 +197,27 @@ class EnhancedVoiceService {
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'es-ES';
 
-      // Usar configuración simple por defecto
-      utterance.rate = 0.9;
-      utterance.pitch = 1.0;
+      // Intentar usar voz española del sistema
+      const voices = speechSynthesis.getVoices();
+      const spanishVoice = voices.find(voice =>
+        voice.lang.startsWith('es') && voice.localService
+      );
+
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+        console.log('🎤 Usando voz del sistema:', spanishVoice.name);
+      }
+
+      // Configuración optimizada
+      utterance.rate = 0.85;  // Un poco más lento para claridad
+      utterance.pitch = 1.05; // Ligeramente más agudo
       utterance.volume = 1.0;
 
       utterance.onend = () => resolve();
-      utterance.onerror = (event) => reject(event);
+      utterance.onerror = (event) => {
+        console.warn('❌ Error en síntesis:', event);
+        reject(event);
+      };
 
       speechSynthesis.speak(utterance);
     });
@@ -657,6 +671,23 @@ class EnhancedVoiceService {
       debtsCount: storageService.getDebts().length,
       clientsCount: storageService.getClients().length,
     };
+  }
+
+  // Obtener todas las voces disponibles
+  getAvailableVoices() {
+    const voices = speechSynthesis.getVoices();
+    return voices.map(voice => ({
+      name: voice.name,
+      lang: voice.lang,
+      localService: voice.localService,
+      default: voice.default,
+      voiceURI: voice.voiceURI
+    }));
+  }
+
+  // Cambiar voz preferida
+  setPreferredVoice(voiceURI: string) {
+    userService.updateUser({ voicePreference: voiceURI });
   }
 }
 
