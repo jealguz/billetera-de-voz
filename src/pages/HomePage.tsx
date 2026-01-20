@@ -24,27 +24,7 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen p-6 animate-fade-in">
       <div className="max-w-4xl mx-auto space-y-8">
-        {isInstallable && (
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl p-4 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-lg">
-                  📱
-                </div>
-                <div>
-                  <h3 className="font-semibold">Instala Wallet Voice</h3>
-                  <p className="text-sm text-blue-100">Accede rápido desde tu pantalla de inicio</p>
-                </div>
-              </div>
-              <button
-                onClick={installPWA}
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors"
-              >
-                Instalar
-              </button>
-            </div>
-          </div>
-        )}
+        
 
         {showBackupReminder && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">

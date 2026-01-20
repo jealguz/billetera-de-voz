@@ -14,7 +14,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { isInstalled, installPWA } = usePWAInstall();
+  const { isInstallable, installPWA } = usePWAInstall();
+  const [showInstallBanner, setShowInstallBanner] = useState(true); // Estado para mostrar/ocultar banner
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,32 +32,52 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
     }
   };
 
+  // Función para cerrar el banner
+  const closeInstallBanner = () => {
+    setShowInstallBanner(false);
+  };
+
+  // Función para instalar y luego cerrar
+  const handleInstallPWA = async () => {
+    await installPWA();
+    closeInstallBanner();
+  };
+
   return (
-    <div className="min-h-screen bg-[#282580] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#282580] to-[#3b2a91] flex items-center justify-center p-4">
       {/* Install Banner */}
-      {!isInstalled && (
+      {isInstallable && showInstallBanner && (
         <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Download className="w-5 h-5 text-blue-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <h4 className="font-semibold text-gray-900">Instala Wallet Voice</h4>
                 <p className="text-sm text-gray-600">Acceso rápido desde tu pantalla de inicio</p>
               </div>
             </div>
             <button
-              onClick={installPWA}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+              onClick={handleInstallPWA}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
             >
               Instalar
+            </button>
+            <button 
+              onClick={closeInstallBanner} // ← AQUÍ ESTÁ CORREGIDO
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-2"
+              aria-label="Cerrar"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in mt-20">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
           <div className="w-28 h-28 mx-auto mb-4 shadow-lg rounded-xl overflow-hidden bg-white">
@@ -71,10 +92,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               }}
             />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-[#282580] to-[#3b2a91] bg-clip-text text-transparent mb-2">
             Wallet Voice
           </h1>
-          <p className="text-gray-300 text-sm">
+          <p className="text-gray-600 text-sm">
             Gestiona tus finanzas con voz
           </p>
         </div>
@@ -82,7 +103,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1">
-            <label className="block text-sm font-semibold text-white">
+            <label className="block text-sm font-semibold text-gray-700">
               Correo Electrónico
             </label>
             <div className="relative">
