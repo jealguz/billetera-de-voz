@@ -80,7 +80,7 @@ const Header: React.FC = () => {
     setCurrentlyPlaying(voice.uri);
     
     try {
-      const textToPreview = customText || previewText;
+      //const textToPreview = customText || previewText;
       
       await enhancedVoiceService.previewVoice(voice);
       

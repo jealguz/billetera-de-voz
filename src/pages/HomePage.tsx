@@ -4,11 +4,11 @@ import BalanceCards from '../components/ui/BalanceCards';
 import QuickActions from '../components/ui/QuickActions';
 import CommandExamples from '../components/ui/CommandExamples';
 import { storageService } from '../services/databaseService';
-import { usePWAInstall } from '../hooks/usePWAInstall';
+//import { usePWAInstall } from '../hooks/usePWAInstall';
 
 const HomePage: React.FC = () => {
   const [showBackupReminder, setShowBackupReminder] = useState(false);
-  const { isInstallable, installPWA } = usePWAInstall();
+  //const { isInstallable, installPWA } = usePWAInstall();
 
   useEffect(() => {
     // Verificar si hay datos y no backup reciente (7 días) - ASÍNCRONO
