@@ -63,8 +63,7 @@ Thumbs.db
 src/**/*.test.js
 src/**/*.spec.js
 
-# PWA service worker
-sw.js
+
 
 # Firebase (if used)
 .firebase/
