@@ -8,20 +8,16 @@ const CommandExamples: React.FC = () => {
       description: "Consulta deudas específicas"
     },
     {
-      command: "José Castro me debe 2000 pesos por materiales",
+      command: "José Castro me debe 2000 pesos",
       description: "Registrar deuda y crear cliente"
     },
     {
-      command: "A qué personas me deben",
+      command: "Qué personas me deben",
       description: "Ver quienes te deben dinero"
     },
     {
       command: "A qué personas les debo",
       description: "Ver a quienes debes dinero"
-    },
-    {
-      command: "Resumen de deudas",
-      description: "Ver balance general"
     },
     {
       command: "María me pagó 1000 pesos",
@@ -33,6 +29,7 @@ const CommandExamples: React.FC = () => {
     <div className="card-professional">
       <div className="card-header">
         <h3 className="font-bold text-gray-800">💡 Comandos de Ejemplo</h3>
+        <p className="text-gray-600 text-sm mt-1">esto puedes decir </p>
       </div>
       <div className="card-body">
         <div className="space-y-4">
