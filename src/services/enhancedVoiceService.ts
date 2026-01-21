@@ -1,6 +1,5 @@
 import { nlpService, ParsedCommand } from './nlpService';
-import { storageService } from './storageService';
-import { userService } from './userService';
+import { storageService } from './databaseService';
 import { formatCurrency } from '../utils/formatters';
 
 export interface VoiceResponse {
@@ -21,12 +20,12 @@ export interface VoiceResponse {
 export interface VoiceSettings {
   voiceURI: string;
   voiceName: string;
-  rate: number;    // velocidad: 0.1 a 10
-  pitch: number;   // tono: 0 a 2
-  volume: number;  // volumen: 0 a 1
+  rate: number;
+  pitch: number;
+  volume: number;
   language: string;
   genderPreference?: 'male' | 'female' | 'neutral';
-  voicePersonality?: string; // Nueva: personalidad de voz
+  voicePersonality?: string;
 }
 
 export interface VoiceInfo {
@@ -42,12 +41,11 @@ export interface VoiceInfo {
   gender: 'male' | 'female' | 'neutral';
   rating: number;
   description: string;
-  personality?: string; // Nueva: personalidad asociada
-  isVirtual?: boolean; // Nueva: si es una voz virtual
-  baseVoiceURI?: string; // Nueva: voz base para voces virtuales
+  personality?: string;
+  isVirtual?: boolean;
+  baseVoiceURI?: string;
 }
 
-// Nueva interfaz para variedad de voces
 export interface VoicePersonality {
   id: string;
   name: string;
@@ -68,7 +66,6 @@ class EnhancedVoiceService {
   private currentSettings: VoiceSettings;
   private voicesLoaded: boolean = false;
   
-  // Nueva: Sistema de personalidades de voz
   private voicePersonalities: VoicePersonality[] = [
     {
       id: 'asistente-formal',
@@ -115,23 +112,16 @@ class EnhancedVoiceService {
   constructor() {
     this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
     this.currentSettings = this.loadVoiceSettings();
-    
-    // Inicializar sistema de voz
     this.initializeVoiceSystem();
   }
 
   // ============ INICIALIZACIÓN ============
   
   private initializeVoiceSystem(): void {
-    // Cargar voces disponibles
     this.loadVoices();
-    
-    // Configurar eventos para cuando se carguen más voces
     this.synth.onvoiceschanged = () => {
       console.log('🎤 Voces actualizadas:', this.synth.getVoices().length);
       this.voicesLoaded = true;
-      
-      // Si no hay voz seleccionada, elegir la mejor por defecto
       if (!this.currentSettings.voiceURI || this.currentSettings.voiceURI === '') {
         this.setDefaultVoice();
       }
@@ -142,22 +132,18 @@ class EnhancedVoiceService {
     const voices = this.synth.getVoices();
     if (voices.length > 0) {
       this.voicesLoaded = true;
-      console.log('🎤 Voces cargadas al iniciar:', voices.length);
     }
   }
 
   private setDefaultVoice(): void {
     const spanishVoices = this.getAllVoicesWithInfo().filter(v => v.isSpanish);
     if (spanishVoices.length > 0) {
-      // Ordenar por rating (mejores primero)
       const sortedVoices = spanishVoices.sort((a, b) => b.rating - a.rating);
       const bestVoice = sortedVoices[0];
-      
       this.currentSettings.voiceURI = bestVoice.uri;
       this.currentSettings.voiceName = bestVoice.name;
       this.currentSettings.language = bestVoice.language;
       this.saveVoiceSettings();
-      console.log('✅ Voz por defecto configurada:', bestVoice.name);
     }
   }
 
@@ -179,7 +165,6 @@ class EnhancedVoiceService {
       const saved = localStorage.getItem('voiceSettings');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Validar que los valores estén en rangos aceptables
         return {
           ...defaultSettings,
           ...parsed,
@@ -203,12 +188,8 @@ class EnhancedVoiceService {
     }
   }
 
-  // ============ NUEVO: SISTEMA DE VARIEDAD DE VOCES ============
+  // ============ SISTEMA DE VARIEDAD DE VOCES ============
   
-  /**
-   * Obtiene todas las voces disponibles, incluyendo voces virtuales creadas
-   * a partir de ajustes de personalidad
-   */
   public getAllVoicesWithInfo(includeVirtual: boolean = true): VoiceInfo[] {
     const realVoices = this.getAvailableVoices();
     const realVoicesInfo = realVoices.map(voice => this.createVoiceInfo(voice));
@@ -217,9 +198,7 @@ class EnhancedVoiceService {
       return realVoicesInfo.sort(this.sortVoices);
     }
     
-    // Crear voces virtuales basadas en personalidades
     const virtualVoices = this.createVirtualVoices(realVoicesInfo);
-    
     return [...virtualVoices, ...realVoicesInfo].sort(this.sortVoices);
   }
   
@@ -244,16 +223,11 @@ class EnhancedVoiceService {
     };
   }
   
-  /**
-   * Crea voces virtuales aplicando diferentes personalidades a voces reales
-   */
   private createVirtualVoices(realVoices: VoiceInfo[]): VoiceInfo[] {
     const virtualVoices: VoiceInfo[] = [];
     
-    // Para cada voz real, crear variantes con diferentes personalidades
     realVoices.forEach(realVoice => {
       this.voicePersonalities.forEach(personality => {
-        // Solo crear variantes para voces en español
         if (realVoice.isSpanish) {
           const virtualVoice: VoiceInfo = {
             uri: `virtual:${realVoice.uri}:${personality.id}`,
@@ -266,7 +240,7 @@ class EnhancedVoiceService {
             isGoogle: realVoice.isGoogle,
             isMicrosoft: realVoice.isMicrosoft,
             gender: realVoice.gender,
-            rating: realVoice.rating + 1, // Las virtuales tienen rating +1
+            rating: realVoice.rating + 1,
             description: `${personality.description} (variante de ${realVoice.name})`,
             personality: personality.id,
             isVirtual: true,
@@ -281,7 +255,6 @@ class EnhancedVoiceService {
   }
   
   private sortVoices(a: VoiceInfo, b: VoiceInfo): number {
-    // Ordenar: primero español, luego voces reales, luego rating
     if (a.isSpanish && !b.isSpanish) return -1;
     if (!a.isSpanish && b.isSpanish) return 1;
     if (!a.isVirtual && b.isVirtual) return -1;
@@ -295,17 +268,13 @@ class EnhancedVoiceService {
 
   private rateVoice(voice: SpeechSynthesisVoice): number {
     const name = voice.name.toLowerCase();
-    let rating = 3; // Puntuación base
-
-    // Puntos por características
+    let rating = 3;
     if (name.includes('neural')) rating += 2;
     if (name.includes('google')) rating += 1;
     if (name.includes('natural')) rating += 1;
     if (voice.localService) rating += 1;
     if (voice.default) rating += 1;
     if (voice.lang.startsWith('es')) rating += 2;
-    
-    // Limitar a 1-5
     return Math.max(1, Math.min(5, rating));
   }
 
@@ -322,26 +291,22 @@ class EnhancedVoiceService {
 
   private getVoiceDescription(voice: SpeechSynthesisVoice): string {
     const name = voice.name.toLowerCase();
-    
     if (name.includes('google')) {
       if (name.includes('neural')) return 'Voz Google Neural (alta calidad)';
       return 'Voz Google (buena calidad)';
     }
-    
     if (name.includes('microsoft')) {
       if (name.includes('neural')) return 'Voz Microsoft Neural (muy natural)';
       return 'Voz Microsoft (estándar)';
     }
-    
     if (name.includes('natural')) return 'Voz natural';
     if (name.includes('neural')) return 'Voz neural (IA)';
     if (voice.localService) return 'Voz del sistema';
     if (voice.default) return 'Voz predeterminada';
-    
     return 'Voz estándar';
   }
 
-  // ============ NUEVO: MÉTODOS PARA PERSONALIDADES ============
+  // ============ MÉTODOS PARA PERSONALIDADES ============
   
   public getAllPersonalities(): VoicePersonality[] {
     return this.voicePersonalities;
@@ -355,7 +320,6 @@ class EnhancedVoiceService {
     const personality = this.getPersonality(personalityId);
     if (!personality) return false;
     
-    // Actualizar ajustes con la personalidad
     this.updateVoiceSettings({
       voicePersonality: personalityId,
       rate: personality.settings.rate,
@@ -379,7 +343,6 @@ class EnhancedVoiceService {
     return this.getAllVoicesWithInfo().filter(v => v.gender === gender);
   }
   
-  // Nueva: Obtener voces por personalidad
   public getVoicesByPersonality(personalityId: string): VoiceInfo[] {
     return this.getAllVoicesWithInfo().filter(v => v.personality === personalityId);
   }
@@ -393,16 +356,12 @@ class EnhancedVoiceService {
   public updateVoiceSettings(settings: Partial<VoiceSettings>): void {
     const oldSettings = { ...this.currentSettings };
     this.currentSettings = { ...this.currentSettings, ...settings };
-    
-    // Validar y ajustar valores
     this.currentSettings.rate = Math.max(0.5, Math.min(2.0, this.currentSettings.rate));
     this.currentSettings.pitch = Math.max(0.5, Math.min(2.0, this.currentSettings.pitch));
     this.currentSettings.volume = Math.max(0.1, Math.min(1.0, this.currentSettings.volume));
     
-    // Guardar solo si hay cambios
     if (JSON.stringify(oldSettings) !== JSON.stringify(this.currentSettings)) {
       this.saveVoiceSettings();
-      console.log('✅ Configuración de voz actualizada:', this.currentSettings);
     }
   }
 
@@ -412,7 +371,6 @@ class EnhancedVoiceService {
     
     if (!selectedVoice) return false;
     
-    // Si es una voz virtual, obtener la voz base
     if (selectedVoice.isVirtual && selectedVoice.baseVoiceURI) {
       const baseVoice = this.getAvailableVoices().find(v => v.voiceURI === selectedVoice.baseVoiceURI);
       if (baseVoice) {
@@ -427,7 +385,6 @@ class EnhancedVoiceService {
         });
       }
     } else {
-      // Es una voz real
       const realVoice = this.getAvailableVoices().find(v => v.voiceURI === voiceURI);
       if (realVoice) {
         this.updateVoiceSettings({
@@ -444,11 +401,9 @@ class EnhancedVoiceService {
   public setVoiceByName(voiceName: string): boolean {
     const voices = this.getAllVoicesWithInfo();
     const selectedVoice = voices.find(v => v.name === voiceName);
-    
     if (selectedVoice) {
       return this.setVoice(selectedVoice.uri);
     }
-    
     return false;
   }
 
@@ -461,44 +416,27 @@ class EnhancedVoiceService {
         return;
       }
 
-      // Cancelar cualquier síntesis en curso
       if (this.synth.speaking) {
         this.synth.cancel();
       }
 
-      // Pequeña pausa para evitar solapamientos
       setTimeout(() => {
         try {
-          // Combinar configuración
           const settings = { ...this.currentSettings, ...options };
-          
-          // Crear utterance
           const utterance = new SpeechSynthesisUtterance(text);
-          
-          // Buscar y configurar voz
           this.configureVoice(utterance, settings);
-          
-          // Aplicar ajustes
           utterance.rate = settings.rate;
           utterance.pitch = settings.pitch;
           utterance.volume = settings.volume;
           
-          // Configurar eventos
           utterance.onend = () => {
-            console.log('🎤 Voz reproducida:', text.substring(0, 50) + '...');
             resolve();
           };
           
           utterance.onerror = (event) => {
-            console.error('❌ Error en síntesis:', event);
             reject(new Error(`Error de voz: ${event.error}`));
           };
           
-          utterance.onstart = () => {
-            console.log('▶️ Iniciando síntesis de voz');
-          };
-          
-          // Reproducir
           this.synth.speak(utterance);
           
         } catch (error) {
@@ -511,7 +449,6 @@ class EnhancedVoiceService {
   private configureVoice(utterance: SpeechSynthesisUtterance, settings: VoiceSettings): void {
     const voices = this.getAvailableVoices();
     
-    // Intentar usar la voz configurada
     if (settings.voiceURI) {
       const selectedVoice = voices.find(v => v.voiceURI === settings.voiceURI);
       if (selectedVoice) {
@@ -521,7 +458,6 @@ class EnhancedVoiceService {
       }
     }
     
-    // Intentar por nombre
     if (settings.voiceName) {
       const selectedVoice = voices.find(v => v.name === settings.voiceName);
       if (selectedVoice) {
@@ -531,24 +467,20 @@ class EnhancedVoiceService {
       }
     }
     
-    // Buscar la mejor voz en español
     const spanishVoices = voices.filter(v => v.lang.startsWith('es'));
     if (spanishVoices.length > 0) {
-      // Preferir voces del sistema
       const systemVoice = spanishVoices.find(v => v.localService) || spanishVoices[0];
       utterance.voice = systemVoice;
       utterance.lang = systemVoice.lang;
       return;
     }
     
-    // Usar configuración de lenguaje
     utterance.lang = settings.language;
   }
 
   public previewVoice(voiceInfo: VoiceInfo): Promise<void> {
     const previewText = "Hola, soy tu asistente de voz. Esta es una muestra de cómo sueno. ¿Te gusta mi voz?";
     
-    // Si es una voz virtual, usar los ajustes de su personalidad
     if (voiceInfo.isVirtual && voiceInfo.personality) {
       const personality = this.getPersonality(voiceInfo.personality);
       if (personality && voiceInfo.baseVoiceURI) {
@@ -562,11 +494,10 @@ class EnhancedVoiceService {
       }
     }
     
-    // Para voces reales
     return this.speak(previewText, {
       voiceURI: voiceInfo.uri,
       voiceName: voiceInfo.name,
-      rate: 1.1, // Un poco más lento para la muestra
+      rate: 1.1,
       pitch: 1.0
     });
   }
@@ -598,21 +529,12 @@ class EnhancedVoiceService {
         reject(event.error);
       };
 
-      this.recognition.onstart = () => {
-        console.log('🎤 Reconocimiento de voz iniciado');
-      };
-
-      this.recognition.onend = () => {
-        console.log('🎤 Reconocimiento de voz finalizado');
-      };
-
       this.recognition.start();
     });
   }
 
   private correctTranscript(transcript: string): string {
     const corrections: { [key: string]: string } = {
-      // Nombres específicos mencionados
       'jason': 'yeison',
       'jason guzmán': 'yeison guzmán',
       'jason gusman': 'yeison guzmán',
@@ -626,8 +548,6 @@ class EnhancedVoiceService {
       'jenny': 'jenny',
       'jeimi': 'jeimi',
       'gisela': 'gisela',
-
-      // Nombres comunes
       'camilo': 'camilo',
       'daniel': 'daniel',
       'miguel': 'miguel',
@@ -637,8 +557,6 @@ class EnhancedVoiceService {
       'ana': 'ana',
       'luis': 'luis',
       'pedro': 'pedro',
-
-      // Frases comunes
       'medebe': 'me debe',
       'ledebo': 'le debo',
       'yo le debo': 'yo le debo',
@@ -649,8 +567,6 @@ class EnhancedVoiceService {
       'pesos': 'pesos',
       'le debo a': 'le debo a',
       'yo le debo a': 'yo le debo a',
-
-      // Números
       'quinientos': '500',
       'seiscientos': '600',
       'setecientos': '700',
@@ -668,15 +584,11 @@ class EnhancedVoiceService {
 
     let corrected = transcript.toLowerCase();
 
-    // Aplicar correcciones
     for (const [wrong, correct] of Object.entries(corrections)) {
       corrected = corrected.replace(new RegExp(`\\b${wrong}\\b`, 'gi'), correct);
     }
 
-    // Capitalizar solo la primera letra
     corrected = corrected.charAt(0).toUpperCase() + corrected.slice(1).toLowerCase();
-
-    console.log('🎤 Transcripción:', transcript, '→ Corregida:', corrected);
     return corrected;
   }
 
@@ -691,7 +603,6 @@ class EnhancedVoiceService {
   private processVoiceCommands(text: string): VoiceResponse | null {
     const lowerText = text.toLowerCase();
     
-    // Comandos para gestionar voz
     if (lowerText.includes('cambia la voz') || lowerText.includes('cambiar voz')) {
       const voices = this.getSpanishVoices();
       const count = voices.length;
@@ -788,7 +699,6 @@ class EnhancedVoiceService {
       }
     }
     
-    // Nuevos comandos para personalidades
     if (lowerText.includes('voz formal') || lowerText.includes('estilo formal')) {
       if (this.setVoicePersonality('asistente-formal')) {
         return {
@@ -837,22 +747,21 @@ class EnhancedVoiceService {
   async processNaturalCommand(text: string): Promise<VoiceResponse> {
     console.log('📝 Procesando comando:', text);
 
-    // Verificar si es un comando de voz
     const voiceCommand = this.processVoiceCommands(text);
     if (voiceCommand) {
       return voiceCommand;
     }
 
     try {
-      // 1. Parsear el comando con NLP
       const parsed = nlpService.parseCommand(text);
       console.log('🔍 Comando parseado:', parsed);
       console.log('🔍 Intent:', parsed.intent, 'Person:', parsed.entities.person, 'Amount:', parsed.entities.amount);
       
-      // 2. Verificar si necesita confirmación (cliente no existe)
       if ((parsed.intent === 'add_debt' || parsed.intent === 'add_payment') && parsed.entities.person && parsed.entities.amount) {
         console.log('🔍 Verificando confirmación para:', parsed.entities.person, 'monto:', parsed.entities.amount);
-        const clientExists = this.checkClientExists(parsed.entities.person);
+        
+        // CAMBIADO: Ahora es async/await
+        const clientExists = await this.checkClientExists(parsed.entities.person);
         console.log('🔍 Cliente existe:', clientExists);
 
         if (!clientExists) {
@@ -883,7 +792,6 @@ class EnhancedVoiceService {
         }
       }
       
-      // 3. Ejecutar acción según intención
       let data: any = null;
       let success = false;
       
@@ -891,14 +799,16 @@ class EnhancedVoiceService {
         case 'add_debt':
           success = await this.handleAddDebt(parsed);
           if (success) {
-            data = storageService.getSummary();
+            // CAMBIADO: Ahora es async/await
+            data = await storageService.getSummary();
           }
           break;
           
         case 'add_payment':
           success = await this.handleAddPayment(parsed);
           if (success && parsed.entities.person) {
-            data = storageService.getClientSummary(parsed.entities.person);
+            // CAMBIADO: Ahora es async/await
+            data = await storageService.getClientSummary(parsed.entities.person);
           }
           break;
           
@@ -908,10 +818,12 @@ class EnhancedVoiceService {
           break;
           
         case 'show_summary':
-          data = {
-            personal: storageService.getSummary(),
-            business: storageService.getBusinessSummary(),
-          };
+          // CAMBIADO: Ahora es async/await
+          const [personal, business] = await Promise.all([
+            storageService.getSummary(),
+            storageService.getBusinessSummary()
+          ]);
+          data = { personal, business };
           success = true;
           break;
           
@@ -920,10 +832,9 @@ class EnhancedVoiceService {
           break;
           
         default:
-          return this.fallbackToBasicSystem(text);
+          return await this.fallbackToBasicSystem(text); // CAMBIADO: Ahora es async
       }
       
-      // 4. Generar respuesta
       const response = nlpService.generateResponse(parsed, data);
       
       console.log('✅ Resultado:', { success, response });
@@ -944,30 +855,55 @@ class EnhancedVoiceService {
     }
   }
   
-  // ============ MANEJADORES DE ACCIONES (sin cambios) ============
+  // ============ MANEJADORES DE ACCIONES (CORREGIDOS CON ASYNC/AWAIT) ============
   
-  private checkClientExists(personName: string): boolean {
-    if (!personName) return false;
-    const clients = storageService.getClients();
+private async checkClientExists(personName: string): Promise<boolean> {
+  if (!personName) {
+    console.log('🔴 DEBUG: personName es null o undefined');
+    return false;
+  }
+
+  try {
+    console.log('🔍 DEBUG checkClientExists: Buscando cliente:', personName);
+    
+    // Obtener clientes de forma asíncrona
+    const clients = await storageService.getClients();
+    console.log('🔍 DEBUG: Clientes obtenidos:', clients.length, 'clientes');
+    
+    // Ver si existe
     const normalizedPersonName = personName.toLowerCase().trim();
-
-    console.log('🔍 Verificando si existe cliente:', normalizedPersonName);
-
-    let exists = clients.some(client =>
+    console.log('🔍 DEBUG: Nombre normalizado:', normalizedPersonName);
+    
+    // Buscar cliente exacto
+    const exactMatch = clients.find(client => 
       client.name.toLowerCase().trim() === normalizedPersonName
     );
-
-    if (!exists) {
-      exists = clients.some(client => {
-        const clientName = client.name.toLowerCase().trim();
-        return clientName.includes(normalizedPersonName) ||
-               normalizedPersonName.includes(clientName);
-      });
+    
+    if (exactMatch) {
+      console.log('✅ DEBUG: Cliente encontrado (exact match):', exactMatch.name);
+      return true;
     }
-
-    console.log('🔍 Resultado checkClientExists:', exists);
-    return exists;
+    
+    // Buscar coincidencias parciales
+    const partialMatch = clients.find(client => {
+      const clientName = client.name.toLowerCase().trim();
+      return clientName.includes(normalizedPersonName) ||
+             normalizedPersonName.includes(clientName);
+    });
+    
+    if (partialMatch) {
+      console.log('✅ DEBUG: Cliente encontrado (partial match):', partialMatch.name);
+      return true;
+    }
+    
+    console.log('❌ DEBUG: Cliente NO encontrado');
+    return false;
+    
+  } catch (error) {
+    console.error('🔴 ERROR en checkClientExists:', error);
+    return false;
   }
+}
   
   private async handleAddDebt(parsed: ParsedCommand): Promise<boolean> {
     const { person, amount, description } = parsed.entities;
@@ -984,7 +920,8 @@ class EnhancedVoiceService {
     console.log('💰 Determinando tipo de deuda:', isOwing ? 'owing (TÚ debes)' : 'owed (te deben)');
 
     try {
-      storageService.addDebt({
+      // CAMBIADO: Ahora es async/await
+      await storageService.addDebt({
         type: isOwing ? 'owing' : 'owed',
         person: this.capitalizeName(person),
         amount: amount,
@@ -1013,7 +950,8 @@ class EnhancedVoiceService {
                         parsed.rawText.toLowerCase().includes('le pagué') ||
                         parsed.rawText.toLowerCase().includes('pagué a');
 
-    const clients = storageService.getClients();
+    // CAMBIADO: Ahora es async/await
+    const clients = await storageService.getClients();
     const client = clients.find(c =>
       c.name.toLowerCase().includes(person.toLowerCase())
     );
@@ -1023,7 +961,9 @@ class EnhancedVoiceService {
     }
 
     const debtType = isMyPayment ? 'owing' : 'owed';
-    const clientDebts = storageService.getDebts().filter(d =>
+    // CAMBIADO: Ahora es async/await
+    const debts = await storageService.getDebts();
+    const clientDebts = debts.filter(d =>
       d.type === debtType &&
       d.person.toLowerCase() === client.name.toLowerCase() &&
       d.status !== 'paid'
@@ -1037,7 +977,8 @@ class EnhancedVoiceService {
     const debt = clientDebts[0];
     
     try {
-      storageService.addPayment(
+      // CAMBIADO: Ahora es async/await
+      await storageService.addPayment(
         debt.id, 
         amount, 
         `Pago de ${person} registrado por voz`
@@ -1053,7 +994,8 @@ class EnhancedVoiceService {
     const { person } = parsed.entities;
 
     if (!person && (parsed.rawText.toLowerCase().includes('les debo') || parsed.rawText.toLowerCase().includes('debo a'))) {
-      const debts = storageService.getDebts();
+      // CAMBIADO: Ahora es async/await
+      const debts = await storageService.getDebts();
       const owingDebts = debts.filter(d => d.type === 'owing' && d.status === 'pending');
 
       return owingDebts.map(d => ({
@@ -1067,7 +1009,8 @@ class EnhancedVoiceService {
       throw new Error('¿De quién quieres consultar la deuda?');
     }
     
-    const clients = storageService.getClients();
+    // CAMBIADO: Ahora es async/await
+    const clients = await storageService.getClients();
     const client = clients.find(c => 
       c.name.toLowerCase().includes(person.toLowerCase())
     );
@@ -1076,7 +1019,9 @@ class EnhancedVoiceService {
       throw new Error(`${person} no está registrado como cliente`);
     }
     
-    const clientDebts = storageService.getDebts().filter(d => 
+    // CAMBIADO: Ahora es async/await
+    const debts = await storageService.getDebts();
+    const clientDebts = debts.filter(d => 
       d.type === 'owed' && 
       d.person.toLowerCase() === client.name.toLowerCase()
     );
@@ -1110,7 +1055,8 @@ class EnhancedVoiceService {
     }
     
     try {
-      storageService.findOrCreateClient(this.capitalizeName(person));
+      // CAMBIADO: Ahora es async/await
+      await storageService.findOrCreateClient(this.capitalizeName(person));
       return true;
     } catch (error: any) {
       console.error('Error creando cliente:', error);
@@ -1118,7 +1064,7 @@ class EnhancedVoiceService {
     }
   }
   
-  // ============ MANEJO DE CONFIRMACIONES ============
+  // ============ MANEJO DE CONFIRMACIONES (CORREGIDO CON ASYNC/AWAIT) ============
   
   async handleConfirmation(
     confirmationData: any, 
@@ -1136,7 +1082,8 @@ class EnhancedVoiceService {
     switch (action) {
       case 'add_debt':
         try {
-          storageService.findOrCreateClient(this.capitalizeName(person));
+          // CAMBIADO: Ahora es async/await
+          await storageService.findOrCreateClient(this.capitalizeName(person));
 
           const debtRawText = confirmationData.rawText || '';
           const normalizedText = debtRawText.toLowerCase();
@@ -1145,7 +1092,8 @@ class EnhancedVoiceService {
                                normalizedText.includes('debo a');
 
           try {
-            storageService.addDebt({
+            // CAMBIADO: Ahora es async/await
+            await storageService.addDebt({
               type: shouldBeOwing ? 'owing' : 'owed',
               person: this.capitalizeName(person),
               amount: amount,
@@ -1169,10 +1117,13 @@ class EnhancedVoiceService {
             ? `✅ Cliente creado y deuda registrada: le debes ${formatCurrency(amount)} a ${person}${description ? ` por "${description}"` : ''}.`
             : `✅ Cliente creado y deuda registrada: ${person} te debe ${formatCurrency(amount)}${description ? ` por "${description}"` : ''}.`;
 
+          // CAMBIADO: Ahora es async/await
+          const clientSummary = await storageService.getClientSummary(person);
+          
           return {
             success: true,
             response: responseMessage,
-            data: storageService.getClientSummary(person),
+            data: clientSummary,
           };
         } catch (error: any) {
           return {
@@ -1189,37 +1140,38 @@ class EnhancedVoiceService {
     }
   }
   
-  // ============ SISTEMA DE FALLBACK BÁSICO ============
+  // ============ SISTEMA DE FALLBACK BÁSICO (CORREGIDO CON ASYNC/AWAIT) ============
   
-  private fallbackToBasicSystem(text: string): VoiceResponse {
+  private async fallbackToBasicSystem(text: string): Promise<VoiceResponse> {
     console.log('🔄 Usando sistema básico de regex');
     
     const patterns = [
       {
         pattern: /(.+?)\s+(?:me debe|debe|qued[oó] debiendo)\s+(\d+)\s+pesos?(?:\s+por\s+(.+))?/i,
-        handler: (match: RegExpMatchArray) => {
+        handler: async (match: RegExpMatchArray) => {
           const [, person, amount, description] = match;
           return `Registrado: ${person} debe ${amount} pesos${description ? ` por ${description}` : ''}`;
         }
       },
       {
         pattern: /(.+?)\s+(?:pag[oó]|abon[oó])\s+(\d+)\s+pesos/i,
-        handler: (match: RegExpMatchArray) => {
+        handler: async (match: RegExpMatchArray) => {
           const [, person, amount] = match;
           return `Pago registrado: ${person} pagó ${amount} pesos`;
         }
       },
       {
         pattern: /cu[aá]nto debe (.+)/i,
-        handler: (match: RegExpMatchArray) => {
+        handler: async (match: RegExpMatchArray) => {
           const [, person] = match;
           return `Consulta: ${person} - función en desarrollo`;
         }
       },
       {
         pattern: /resumen de deudas/i,
-        handler: () => {
-          const summary = storageService.getSummary();
+        handler: async () => {
+          // CAMBIADO: Ahora es async/await
+          const summary = await storageService.getSummary();
           return `Resumen: Te deben ${summary.totalOwed} pesos. Tú debes ${summary.totalOwing} pesos.`;
         }
       }
@@ -1228,9 +1180,10 @@ class EnhancedVoiceService {
     for (const { pattern, handler } of patterns) {
       const match = text.match(pattern);
       if (match) {
+        const response = await handler(match);
         return {
           success: true,
-          response: handler(match),
+          response,
         };
       }
     }
@@ -1254,7 +1207,13 @@ class EnhancedVoiceService {
     return this.processNaturalCommand(text);
   }
   
-  getStats() {
+  async getStats() {
+    // CAMBIADO: Ahora es async/await
+    const [debts, clients] = await Promise.all([
+      storageService.getDebts(),
+      storageService.getClients()
+    ]);
+    
     const voices = this.getAllVoicesWithInfo();
     const realVoices = voices.filter(v => !v.isVirtual);
     const virtualVoices = voices.filter(v => v.isVirtual);
@@ -1270,8 +1229,8 @@ class EnhancedVoiceService {
       currentVoice: this.currentSettings.voiceName || 'Predeterminada',
       currentPersonality: this.currentSettings.voicePersonality || 'Ninguna',
       currentSettings: this.currentSettings,
-      debtsCount: storageService.getDebts().length,
-      clientsCount: storageService.getClients().length,
+      debtsCount: debts.length,
+      clientsCount: clients.length,
     };
   }
 
@@ -1292,17 +1251,14 @@ class EnhancedVoiceService {
     }
   }
   
-  // Nueva: Obtener solo voces reales (sin virtuales)
   public getRealVoices(): VoiceInfo[] {
     return this.getAllVoicesWithInfo(false);
   }
   
-  // Nueva: Obtener solo voces virtuales
   public getVirtualVoices(): VoiceInfo[] {
     return this.getAllVoicesWithInfo().filter(v => v.isVirtual);
   }
   
-  // Nueva: Contar voces por tipo
   public countVoicesByType() {
     const voices = this.getAllVoicesWithInfo();
     return {

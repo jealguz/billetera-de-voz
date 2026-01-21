@@ -3,7 +3,7 @@ import VoiceAssistant from '../components/voice/VoiceAssistant';
 import BalanceCards from '../components/ui/BalanceCards';
 import QuickActions from '../components/ui/QuickActions';
 import CommandExamples from '../components/ui/CommandExamples';
-import { storageService } from '../services/storageService';
+import { storageService } from '../services/databaseService';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
 const HomePage: React.FC = () => {
@@ -11,15 +11,26 @@ const HomePage: React.FC = () => {
   const { isInstallable, installPWA } = usePWAInstall();
 
   useEffect(() => {
-    // Verificar si hay datos y no backup reciente (7 días)
-    const stats = storageService.getStats();
-    const lastBackup = localStorage.getItem('lastBackup');
-    const hasData = stats.debtsCount > 0 || stats.paymentsCount > 0;
+    // Verificar si hay datos y no backup reciente (7 días) - ASÍNCRONO
+    const checkBackupReminder = async () => {
+      try {
+        const stats = await storageService.getStats(); // AWAIT aquí
+        const lastBackup = localStorage.getItem('lastBackup');
+        const hasData = stats.debtsCount > 0 || stats.paymentsCount > 0;
 
-    if (hasData && (!lastBackup || Date.now() - parseInt(lastBackup || '0') > 7 * 24 * 60 * 60 * 1000)) {
-      setShowBackupReminder(true);
-    }
+        if (hasData && (!lastBackup || Date.now() - parseInt(lastBackup || '0') > 7 * 24 * 60 * 60 * 1000)) {
+          setShowBackupReminder(true);
+        }
+      } catch (error) {
+        console.error('Error al verificar backup:', error);
+      }
+    };
+
+    checkBackupReminder();
   }, []);
+
+  // También BalanceCards podría necesitar ajustes si usa storageService internamente
+  // Pero eso depende de su implementación
 
   return (
     <div className="min-h-screen p-6 animate-fade-in">

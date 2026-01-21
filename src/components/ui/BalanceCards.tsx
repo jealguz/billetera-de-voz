@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import { Debt } from '../../types';
-import { storageService } from '../../services/storageService';
+import { storageService } from '../../services/databaseService';
 
 interface ClientBalance {
   name: string;
@@ -12,10 +12,20 @@ const BalanceCards: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'owing' | 'owed'>('owed');
+  const [loading, setLoading] = useState(true); // Estado de carga
 
   useEffect(() => {
-    const loadData = () => {
-      setDebts(storageService.getDebts());
+    const loadData = async () => { // Haz la función asíncrona
+      try {
+        setLoading(true);
+        const loadedDebts = await storageService.getDebts(); // Agrega await
+        setDebts(loadedDebts);
+      } catch (error) {
+        console.error('Error cargando deudas:', error);
+        setDebts([]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
@@ -80,11 +90,31 @@ const BalanceCards: React.FC = () => {
   const getOwedDebts = () => debts.filter(d => d.type === 'owed' && d.status !== 'paid');
   const getOwingDebts = () => debts.filter(d => d.type === 'owing' && d.status !== 'paid');
 
+  // Mostrar loading mientras carga
+  if (loading) {
+    return (
+      <div className="mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg border border-blue-500/20 animate-pulse">
+            <div className="h-4 bg-blue-500 rounded w-1/3 mb-2"></div>
+            <div className="h-8 bg-blue-500 rounded w-2/3 mb-2"></div>
+            <div className="h-3 bg-blue-500 rounded w-1/2"></div>
+          </div>
+          <div className="bg-gradient-to-br from-slate-600 to-slate-700 text-white p-6 rounded-2xl shadow-lg border border-slate-500/20 animate-pulse">
+            <div className="h-4 bg-slate-500 rounded w-1/3 mb-2"></div>
+            <div className="h-8 bg-slate-500 rounded w-2/3 mb-2"></div>
+            <div className="h-3 bg-slate-500 rounded w-1/2"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mb-6">
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg border border-blue-500/20">
-          <p className="text-sm opacity-90">Le deben</p>
+          <p className="text-sm opacity-90">Te deben</p>
           <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwed)}</p>
           <p className="text-xs opacity-80 mt-2">
             {owedToMeCount} {owedToMeCount === 1 ? 'persona' : 'personas'}

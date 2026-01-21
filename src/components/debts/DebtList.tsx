@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Filter, UserPlus } from 'lucide-react';
+import { Search, UserPlus, Settings } from 'lucide-react';
 import { Debt } from '../../types';
-import { storageService } from '../../services/storageService';
+import { storageService } from '../../services/databaseService';
 import { formatCurrency } from '../../utils/formatters';
 import DebtCard from './DebtCard';
 import Button from '../ui/Button';
@@ -14,16 +14,37 @@ const DebtList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'owed' | 'owing'>('all');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
+  const [loading, setLoading] = useState(true); // Estado de carga
 
-  // Función para cargar deudas
-  const loadDebts = useCallback(() => {
-    const loadedDebts = storageService.getDebts();
-    setDebts(loadedDebts);
+  // Función para cargar deudas (ASÍNCRONA)
+  const loadDebts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const loadedDebts = await storageService.getDebts(); // Agrega AWAIT
+      setDebts(loadedDebts);
+    } catch (error) {
+      console.error('Error cargando deudas:', error);
+      setDebts([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   // Cargar deudas al montar el componente
   useEffect(() => {
     loadDebts();
+  }, [loadDebts]);
+
+  // También puedes agregar un listener para actualizaciones
+  useEffect(() => {
+    const handleDebtsUpdated = () => {
+      loadDebts();
+    };
+
+    window.addEventListener('debtsUpdated', handleDebtsUpdated);
+    return () => {
+      window.removeEventListener('debtsUpdated', handleDebtsUpdated);
+    };
   }, [loadDebts]);
 
   // Función para filtrar deudas
@@ -72,19 +93,19 @@ const DebtList: React.FC = () => {
 
   const { totalOwed, totalOwing } = calculateTotals();
 
-  // Manejar eliminación de deuda
-  const handleDeleteDebt = useCallback((id: string) => {
+  // Manejar eliminación de deuda (ASÍNCRONO)
+  const handleDeleteDebt = useCallback(async (id: string) => {
     if (window.confirm('¿Estás seguro de eliminar esta deuda?')) {
-      storageService.deleteDebt(id);
+      await storageService.deleteDebt(id);
       loadDebts();
     }
   }, [loadDebts]);
 
-  // Manejar marca como pagado
-  const handleMarkAsPaid = useCallback((id: string) => {
+  // Manejar marca como pagado (ASÍNCRONO)
+  const handleMarkAsPaid = useCallback(async (id: string) => {
     const debt = debts.find(d => d.id === id);
     if (debt) {
-      storageService.updateDebt(id, { 
+      await storageService.updateDebt(id, { 
         status: 'paid',
         paidAmount: debt.amount 
       });
@@ -101,12 +122,24 @@ const DebtList: React.FC = () => {
     // O usar tu sistema de navegación
   };
 
+  // Mostrar loading mientras carga
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando deudas...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Totales */}
       <div className="grid grid-cols-2 gap-4">
         <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-          <p className="text-sm opacity-90">T deben</p>
+          <p className="text-sm opacity-90">Te deben</p>
           <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwed)}</p>
           <p className="text-xs opacity-80 mt-2">
             {debts.filter(d => d.type === 'owed' && d.status !== 'paid').length} personas
@@ -156,7 +189,7 @@ const DebtList: React.FC = () => {
             <Button
               variant="ghost"
               size="sm"
-              icon={Filter}
+              icon={Settings}
               onClick={() => {
                 setSearchTerm('');
                 setFilterType('all');

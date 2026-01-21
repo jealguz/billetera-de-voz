@@ -1,46 +1,85 @@
-import { Debt } from '../types';
-import { storageService } from './storageService';
+import { Debt, NewDebt } from '../types';
+import { storageService } from './databaseService';
 
 export const debtService = {
-  getDebts(): Debt[] {
-    return storageService.getDebts();
+  // TODOS los métodos ahora son ASÍNCRONOS (async/await)
+  
+  async getDebts(): Promise<Debt[]> {
+    return await storageService.getDebts(); // Agregar await
   },
 
-  getDebt(id: string): Debt | null {
-    return storageService.getDebt(id);
+  async getDebt(id: string): Promise<Debt | null> {
+    return await storageService.getDebt(id); // Agregar await
   },
 
-  addDebt(person: string, amount: number, type: 'owed' | 'owing', description?: string): Debt {
-    return storageService.addDebt({
+  async addDebt(person: string, amount: number, type: 'owed' | 'owing', description?: string): Promise<Debt> {
+    const newDebt: NewDebt = {
       person,
       amount,
       type,
       description,
-      date: new Date(), // ← AQUÍ FALTA ESTA LÍNEA
+      date: new Date(),
       dueDate: undefined,
       status: 'pending',
       paidAmount: 0,
-    });
+    };
+    
+    return await storageService.addDebt(newDebt); // Agregar await
   },
 
-  updateDebt(id: string, updates: Partial<Debt>): Debt | null {
-    const success = storageService.updateDebt(id, updates);
-    return success ? storageService.getDebt(id) : null;
+  async updateDebt(id: string, updates: Partial<Debt>): Promise<Debt | null> {
+    const success = await storageService.updateDebt(id, updates); // Agregar await
+    return success ? await storageService.getDebt(id) : null; // Agregar await
   },
 
-  deleteDebt(id: string): boolean {
-    return storageService.deleteDebt(id);
+  async deleteDebt(id: string): Promise<boolean> {
+    return await storageService.deleteDebt(id); // Agregar await
   },
 
-  getSummary() {
-    return storageService.getSummary();
+  async getSummary() {
+    return await storageService.getSummary(); // Agregar await
   },
 
-  addPayment(debtId: string, amount: number, note?: string) {
-    return storageService.addPayment(debtId, amount, note);
+  async addPayment(debtId: string, amount: number, note?: string) {
+    return await storageService.addPayment(debtId, amount, note); // Agregar await
   },
 
-  getDebtPayments(debtId: string) {
-    return storageService.getDebtPayments(debtId);
+  async getDebtPayments(debtId: string) {
+    return await storageService.getDebtPayments(debtId); // Agregar await
   },
+
+  // Métodos adicionales útiles
+  async getPendingDebts(): Promise<Debt[]> {
+    const debts = await this.getDebts(); // Agregar await
+    return debts.filter(debt => debt.status === 'pending');
+  },
+
+  async getPaidDebts(): Promise<Debt[]> {
+    const debts = await this.getDebts(); // Agregar await
+    return debts.filter(debt => debt.status === 'paid');
+  },
+
+  async getDebtsByPerson(personName: string): Promise<Debt[]> {
+    const debts = await this.getDebts(); // Agregar await
+    return debts.filter(debt => 
+      debt.person.toLowerCase().includes(personName.toLowerCase())
+    );
+  },
+
+  async getTotalBalance(): Promise<{ owed: number; owing: number; net: number }> {
+    const debts = await this.getDebts(); // Agregar await
+    const owed = debts
+      .filter(d => d.type === 'owed' && d.status !== 'paid')
+      .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
+    
+    const owing = debts
+      .filter(d => d.type === 'owing' && d.status !== 'paid')
+      .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
+    
+    return {
+      owed,
+      owing,
+      net: owed - owing
+    };
+  }
 };
