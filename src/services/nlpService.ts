@@ -3,12 +3,12 @@ import { franc } from 'franc';
 import { formatCurrency } from '../utils/formatters';
 
 // ✅ ACTUALIZADO: Tipo Intent con todos los casos
-export type Intent = 
-  | 'add_debt' 
-  | 'add_payment' 
-  | 'query_debt' 
-  | 'show_summary' 
-  | 'create_client' 
+export type Intent =
+  | 'add_debt'
+  | 'add_payment'
+  | 'query_debt'
+  | 'show_summary'
+  | 'create_client'
   | 'query_payment_history'    // ✅ NUEVO
   | 'query_last_payment'       // ✅ NUEVO
   | 'query_overdue_debts'      // ✅ NUEVO
@@ -47,242 +47,242 @@ class NLPService {
   }
 
   // Extraer nombres de personas
-extractPerson(text: string): string | null {
-  try {
-    console.log('👤 Buscando persona en:', text);
-    const lowerText = text.toLowerCase();
+  extractPerson(text: string): string | null {
+    try {
+      console.log('👤 Buscando persona en:', text);
+      const lowerText = text.toLowerCase();
 
-    // ============ PATRONES DE DEUDAS (ALTA PRIORIDAD) ============
-    
-    // 1. "Le debo a Ana García 6000 pesos"
-    const leDeboPattern = /le debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const leDeboMatch = text.match(leDeboPattern);
-    if (leDeboMatch && leDeboMatch[1]) {
-      const fullName = leDeboMatch[1].trim();
-      console.log('👤 Extraído de "le debo a":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
+      // ============ PATRONES DE DEUDAS (ALTA PRIORIDAD) ============
 
-    // 2. "Yo le debo a Ana García"
-    const yoLeDeboPattern = /yo le debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const yoLeDeboMatch = text.match(yoLeDeboPattern);
-    if (yoLeDeboMatch && yoLeDeboMatch[1]) {
-      const fullName = yoLeDeboMatch[1].trim();
-      console.log('👤 Extraído de "yo le debo a":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 3. "Debo a Ana García"
-    const deboPattern = /debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const deboMatch = text.match(deboPattern);
-    if (deboMatch && deboMatch[1]) {
-      const fullName = deboMatch[1].trim();
-      console.log('👤 Extraído de "debo a":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 4. "Me debe Ana García"
-    const meDebePattern = /me debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const meDebeMatch = text.match(meDebePattern);
-    if (meDebeMatch && meDebeMatch[1]) {
-      const fullName = meDebeMatch[1].trim();
-      console.log('👤 Extraído de "me debe":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 5. "Ana García me debe" (al inicio)
-    const inicioMeDebePattern = /^([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+me debe/i;
-    const inicioMeDebeMatch = text.match(inicioMeDebePattern);
-    if (inicioMeDebeMatch && inicioMeDebeMatch[1]) {
-      const fullName = inicioMeDebeMatch[1].trim();
-      console.log('👤 Extraído de inicio "nombre me debe":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 6. "Ana García le debo" (al inicio inverso)
-    const leDeboInicioPattern = /^([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+le debo/i;
-    const leDeboInicioMatch = text.match(leDeboInicioPattern);
-    if (leDeboInicioMatch && leDeboInicioMatch[1]) {
-      const fullName = leDeboInicioMatch[1].trim();
-      console.log('👤 Extraído de inicio "nombre le debo":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // ============ PATRONES DE CONSULTAS (¿QUIÉN? ¿CUÁNTO?) ============
-    
-    // 7. "¿Cuánto me debe Ana García?" (consultas)
-    const cuantoMeDebePattern = /(?:cuánto|cuanto)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const cuantoMeDebeMatch = text.match(cuantoMeDebePattern);
-    if (cuantoMeDebeMatch && cuantoMeDebeMatch[1]) {
-      const fullName = cuantoMeDebeMatch[1].trim();
-      console.log('👤 Extraído de "¿cuánto me debe?":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 8. "¿Cuánto le debo a Ana García?" 
-    const cuantoLeDeboPattern = /(?:cuánto|cuanto)\s+(?:le\s+)?debo\s+a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const cuantoLeDeboMatch = text.match(cuantoLeDeboPattern);
-    if (cuantoLeDeboMatch && cuantoLeDeboMatch[1]) {
-      const fullName = cuantoLeDeboMatch[1].trim();
-      console.log('👤 Extraído de "¿cuánto le debo?":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 9. "¿Quién me debe? - Ana García" (para consultas generales)
-    if (lowerText.includes('quién me debe') || lowerText.includes('quien me debe')) {
-      // Buscar nombre después de la pregunta
-      const quienMatch = text.match(/(?:quién|quien)\s+me debe\s+(?:es\s+)?([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i);
-      if (quienMatch && quienMatch[1]) {
-        const fullName = quienMatch[1].trim();
-        console.log('👤 Extraído de "¿quién me debe?":', fullName);
+      // 1. "Le debo a Ana García 6000 pesos"
+      const leDeboPattern = /le debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const leDeboMatch = text.match(leDeboPattern);
+      if (leDeboMatch && leDeboMatch[1]) {
+        const fullName = leDeboMatch[1].trim();
+        console.log('👤 Extraído de "le debo a":', fullName);
         return this.capitalizeFullName(fullName);
       }
-    }
 
-    // 10. "¿Desde cuándo me debe Ana García?"
-    const desdeCuandoPattern = /desde\s+(?:cuándo|cuando)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const desdeCuandoMatch = text.match(desdeCuandoPattern);
-    if (desdeCuandoMatch && desdeCuandoMatch[1]) {
-      const fullName = desdeCuandoMatch[1].trim();
-      console.log('👤 Extraído de "¿desde cuándo me debe?":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 11. "¿Desde cuándo le debo a Ana García?"
-    const desdeCuandoLeDeboPattern = /desde\s+(?:cuándo|cuando)\s+(?:le\s+)?debo\s+a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const desdeCuandoLeDeboMatch = text.match(desdeCuandoLeDeboPattern);
-    if (desdeCuandoLeDeboMatch && desdeCuandoLeDeboMatch[1]) {
-      const fullName = desdeCuandoLeDeboMatch[1].trim();
-      console.log('👤 Extraído de "¿desde cuándo le debo?":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // 12. "¿Hace cuánto me debe Ana García?"
-    const haceCuantoPattern = /hace\s+(?:cuánto|cuanto)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
-    const haceCuantoMatch = text.match(haceCuantoPattern);
-    if (haceCuantoMatch && haceCuantoMatch[1]) {
-      const fullName = haceCuantoMatch[1].trim();
-      console.log('👤 Extraído de "¿hace cuánto me debe?":', fullName);
-      return this.capitalizeFullName(fullName);
-    }
-
-    // ============ PATRONES DE PAGOS ============
-    
-    // 13. Patrones de pagos recibidos
-    const pagoPatterns = [
-      // "Ana García me pagó 6000 pesos"
-      /([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+(?:me pagó|pagó|me abonó|abonó)/i,
-      // "Me pagó Ana García 6000 pesos"
-      /(?:me pagó|pagó|me abonó|abonó)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-      // "Le abono a Ana García 6000 pesos"
-      /le abono a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-      // "Abono a Ana García 6000 pesos"
-      /abono a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-      // "¿Cuándo me pagó Ana García?"
-      /(?:cuándo|cuando)\s+(?:me\s+)?pag[oó]\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-      // "Último pago de Ana García"
-      /(?:último|ultimo)\s+pago\s+(?:de|del)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-      // "Historial de pagos de Ana García"
-      /historial\s+(?:de\s+)?pagos\s+(?:de|del)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
-    ];
-
-    for (const pattern of pagoPatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        const fullName = match[1].trim();
-        console.log('👤 Extraído de patrón de pago:', fullName, 'patrón:', pattern);
+      // 2. "Yo le debo a Ana García"
+      const yoLeDeboPattern = /yo le debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const yoLeDeboMatch = text.match(yoLeDeboPattern);
+      if (yoLeDeboMatch && yoLeDeboMatch[1]) {
+        const fullName = yoLeDeboMatch[1].trim();
+        console.log('👤 Extraído de "yo le debo a":', fullName);
         return this.capitalizeFullName(fullName);
       }
-    }
 
-    // ============ PATRONES DE CLIENTES NUEVOS ============
-    
-    // 14. Patrones para creación de clientes
-    const clientPatterns = [
-      // "Cliente nuevo Ana García"
-      /(?:cliente nuevo|nuevo cliente|registrar cliente|agregar cliente|cliente)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
-      // "Cliente: Ana García" (con dos puntos)
-      /(?:cliente|cliente nuevo|nuevo cliente):?\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
-      // "Agregar a Ana García como cliente"
-      /(?:agregar a|registrar a)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+como cliente|$)/i,
-    ];
-
-    for (const pattern of clientPatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        const fullName = match[1].trim();
-        console.log('👤 Patrón de cliente encontrado:', fullName);
+      // 3. "Debo a Ana García"
+      const deboPattern = /debo a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const deboMatch = text.match(deboPattern);
+      if (deboMatch && deboMatch[1]) {
+        const fullName = deboMatch[1].trim();
+        console.log('👤 Extraído de "debo a":', fullName);
         return this.capitalizeFullName(fullName);
       }
-    }
 
-    // ============ PATRONES GENERALES (tu código existente) ============
-    
-    const namePatterns = [
-      // Patrón: "Al señor José Amaya le debo 12000" (tratamientos primero)
-      /(?:al|a el|a la)\s+(?:señor|señora|señorita|joven|jovencita|muchacho|muchacha|don|doña|doctor|doctora|ingeniero|ingeniera|licenciado|licenciada|profesor|profesora|arquitecto|arquitecta|abogado|abogada|maestro|maestra)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
-      // Patrón: "A José Hernández le debo 20000"
-      /^A\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
-      // Patrón: "Camilo Arango me debe $3000"
-      /^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
-      // Patrón: "de Camilo Arango $3000"
-      /de\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
-    ];
+      // 4. "Me debe Ana García"
+      const meDebePattern = /me debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const meDebeMatch = text.match(meDebePattern);
+      if (meDebeMatch && meDebeMatch[1]) {
+        const fullName = meDebeMatch[1].trim();
+        console.log('👤 Extraído de "me debe":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
 
-    for (const pattern of namePatterns) {
-      const match = text.match(pattern);
-      if (match && match[1]) {
-        const fullName = match[1].trim();
-        console.log('👤 Patrón general encontrado:', fullName);
-        const nameParts = fullName.split(' ');
-        if (nameParts.length >= 2 &&
-            !this.isCommonWord(nameParts[0]) &&
-            !this.isCommonWord(nameParts[1])) {
+      // 5. "Ana García me debe" (al inicio)
+      const inicioMeDebePattern = /^([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+me debe/i;
+      const inicioMeDebeMatch = text.match(inicioMeDebePattern);
+      if (inicioMeDebeMatch && inicioMeDebeMatch[1]) {
+        const fullName = inicioMeDebeMatch[1].trim();
+        console.log('👤 Extraído de inicio "nombre me debe":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // 6. "Ana García le debo" (al inicio inverso)
+      const leDeboInicioPattern = /^([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+le debo/i;
+      const leDeboInicioMatch = text.match(leDeboInicioPattern);
+      if (leDeboInicioMatch && leDeboInicioMatch[1]) {
+        const fullName = leDeboInicioMatch[1].trim();
+        console.log('👤 Extraído de inicio "nombre le debo":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // ============ PATRONES DE CONSULTAS (¿QUIÉN? ¿CUÁNTO?) ============
+
+      // 7. "¿Cuánto me debe Ana García?" (consultas)
+      const cuantoMeDebePattern = /(?:cuánto|cuanto)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const cuantoMeDebeMatch = text.match(cuantoMeDebePattern);
+      if (cuantoMeDebeMatch && cuantoMeDebeMatch[1]) {
+        const fullName = cuantoMeDebeMatch[1].trim();
+        console.log('👤 Extraído de "¿cuánto me debe?":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // 8. "¿Cuánto le debo a Ana García?" 
+      const cuantoLeDeboPattern = /(?:cuánto|cuanto)\s+(?:le\s+)?debo\s+a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const cuantoLeDeboMatch = text.match(cuantoLeDeboPattern);
+      if (cuantoLeDeboMatch && cuantoLeDeboMatch[1]) {
+        const fullName = cuantoLeDeboMatch[1].trim();
+        console.log('👤 Extraído de "¿cuánto le debo?":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // 9. "¿Quién me debe? - Ana García" (para consultas generales)
+      if (lowerText.includes('quién me debe') || lowerText.includes('quien me debe')) {
+        // Buscar nombre después de la pregunta
+        const quienMatch = text.match(/(?:quién|quien)\s+me debe\s+(?:es\s+)?([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i);
+        if (quienMatch && quienMatch[1]) {
+          const fullName = quienMatch[1].trim();
+          console.log('👤 Extraído de "¿quién me debe?":', fullName);
           return this.capitalizeFullName(fullName);
         }
       }
-    }
 
-    // ============ FALLBACKS ============
-    
-    // 15. Extraer nombre después de palabras clave de intención
-    if (lowerText.includes('cliente nuevo') || 
+      // 10. "¿Desde cuándo me debe Ana García?"
+      const desdeCuandoPattern = /desde\s+(?:cuándo|cuando)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const desdeCuandoMatch = text.match(desdeCuandoPattern);
+      if (desdeCuandoMatch && desdeCuandoMatch[1]) {
+        const fullName = desdeCuandoMatch[1].trim();
+        console.log('👤 Extraído de "¿desde cuándo me debe?":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // 11. "¿Desde cuándo le debo a Ana García?"
+      const desdeCuandoLeDeboPattern = /desde\s+(?:cuándo|cuando)\s+(?:le\s+)?debo\s+a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const desdeCuandoLeDeboMatch = text.match(desdeCuandoLeDeboPattern);
+      if (desdeCuandoLeDeboMatch && desdeCuandoLeDeboMatch[1]) {
+        const fullName = desdeCuandoLeDeboMatch[1].trim();
+        console.log('👤 Extraído de "¿desde cuándo le debo?":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // 12. "¿Hace cuánto me debe Ana García?"
+      const haceCuantoPattern = /hace\s+(?:cuánto|cuanto)\s+(?:me\s+)?debe\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i;
+      const haceCuantoMatch = text.match(haceCuantoPattern);
+      if (haceCuantoMatch && haceCuantoMatch[1]) {
+        const fullName = haceCuantoMatch[1].trim();
+        console.log('👤 Extraído de "¿hace cuánto me debe?":', fullName);
+        return this.capitalizeFullName(fullName);
+      }
+
+      // ============ PATRONES DE PAGOS ============
+
+      // 13. Patrones de pagos recibidos
+      const pagoPatterns = [
+        // "Ana García me pagó 6000 pesos"
+        /([a-záéíóúñ]+\s+[a-záéíóúñ]+)\s+(?:me pagó|pagó|me abonó|abonó)/i,
+        // "Me pagó Ana García 6000 pesos"
+        /(?:me pagó|pagó|me abonó|abonó)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+        // "Le abono a Ana García 6000 pesos"
+        /le abono a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+        // "Abono a Ana García 6000 pesos"
+        /abono a\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+        // "¿Cuándo me pagó Ana García?"
+        /(?:cuándo|cuando)\s+(?:me\s+)?pag[oó]\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+        // "Último pago de Ana García"
+        /(?:último|ultimo)\s+pago\s+(?:de|del)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+        // "Historial de pagos de Ana García"
+        /historial\s+(?:de\s+)?pagos\s+(?:de|del)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)/i,
+      ];
+
+      for (const pattern of pagoPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const fullName = match[1].trim();
+          console.log('👤 Extraído de patrón de pago:', fullName, 'patrón:', pattern);
+          return this.capitalizeFullName(fullName);
+        }
+      }
+
+      // ============ PATRONES DE CLIENTES NUEVOS ============
+
+      // 14. Patrones para creación de clientes
+      const clientPatterns = [
+        // "Cliente nuevo Ana García"
+        /(?:cliente nuevo|nuevo cliente|registrar cliente|agregar cliente|cliente)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
+        // "Cliente: Ana García" (con dos puntos)
+        /(?:cliente|cliente nuevo|nuevo cliente):?\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
+        // "Agregar a Ana García como cliente"
+        /(?:agregar a|registrar a)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+como cliente|$)/i,
+      ];
+
+      for (const pattern of clientPatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const fullName = match[1].trim();
+          console.log('👤 Patrón de cliente encontrado:', fullName);
+          return this.capitalizeFullName(fullName);
+        }
+      }
+
+      // ============ PATRONES GENERALES (tu código existente) ============
+
+      const namePatterns = [
+        // Patrón: "Al señor José Amaya le debo 12000" (tratamientos primero)
+        /(?:al|a el|a la)\s+(?:señor|señora|señorita|joven|jovencita|muchacho|muchacha|don|doña|doctor|doctora|ingeniero|ingeniera|licenciado|licenciada|profesor|profesora|arquitecto|arquitecta|abogado|abogada|maestro|maestra)\s+([a-záéíóúñ]+\s+[a-záéíóúñ]+)(?:\s+|$)/i,
+        // Patrón: "A José Hernández le debo 20000"
+        /^A\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
+        // Patrón: "Camilo Arango me debe $3000"
+        /^([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
+        // Patrón: "de Camilo Arango $3000"
+        /de\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+)(?:\s+|$)/i,
+      ];
+
+      for (const pattern of namePatterns) {
+        const match = text.match(pattern);
+        if (match && match[1]) {
+          const fullName = match[1].trim();
+          console.log('👤 Patrón general encontrado:', fullName);
+          const nameParts = fullName.split(' ');
+          if (nameParts.length >= 2 &&
+            !this.isCommonWord(nameParts[0]) &&
+            !this.isCommonWord(nameParts[1])) {
+            return this.capitalizeFullName(fullName);
+          }
+        }
+      }
+
+      // ============ FALLBACKS ============
+
+      // 15. Extraer nombre después de palabras clave de intención
+      if (lowerText.includes('cliente nuevo') ||
         lowerText.includes('nuevo cliente') ||
         lowerText.includes('registrar cliente')) {
-      
-      const cleanedText = text
-        .toLowerCase()
-        .replace(/(cliente nuevo|nuevo cliente|registrar cliente|agregar cliente|cliente)\s*/gi, '')
-        .trim();
-      
-      const words = cleanedText.split(' ');
-      if (words.length >= 2) {
-        const potentialName = words.slice(0, 2).join(' ');
-        console.log('👤 Nombre extraído después de palabra clave:', potentialName);
-        return this.capitalizeFullName(potentialName);
-      }
-    }
 
-    // 16. Último recurso: buscar dos palabras consecutivas que no sean comunes
-    const words = lowerText.split(/\s+/).filter(w => w.length > 2);
-    for (let i = 0; i < words.length - 1; i++) {
-      const word1 = words[i];
-      const word2 = words[i + 1];
-      
-      if (!this.isCommonWord(word1) && !this.isCommonWord(word2)) {
-        const potentialName = `${word1} ${word2}`;
-        console.log('👤 Nombre por palabras no comunes:', potentialName);
-        return this.capitalizeFullName(potentialName);
-      }
-    }
+        const cleanedText = text
+          .toLowerCase()
+          .replace(/(cliente nuevo|nuevo cliente|registrar cliente|agregar cliente|cliente)\s*/gi, '')
+          .trim();
 
-    console.log('👤 No se encontró persona en el texto:', text);
-    return null;
-  } catch (error) {
-    console.warn('Error extrayendo persona:', error);
-    return null;
+        const words = cleanedText.split(' ');
+        if (words.length >= 2) {
+          const potentialName = words.slice(0, 2).join(' ');
+          console.log('👤 Nombre extraído después de palabra clave:', potentialName);
+          return this.capitalizeFullName(potentialName);
+        }
+      }
+
+      // 16. Último recurso: buscar dos palabras consecutivas que no sean comunes
+      const words = lowerText.split(/\s+/).filter(w => w.length > 2);
+      for (let i = 0; i < words.length - 1; i++) {
+        const word1 = words[i];
+        const word2 = words[i + 1];
+
+        if (!this.isCommonWord(word1) && !this.isCommonWord(word2)) {
+          const potentialName = `${word1} ${word2}`;
+          console.log('👤 Nombre por palabras no comunes:', potentialName);
+          return this.capitalizeFullName(potentialName);
+        }
+      }
+
+      console.log('👤 No se encontró persona en el texto:', text);
+      return null;
+    } catch (error) {
+      console.warn('Error extrayendo persona:', error);
+      return null;
+    }
   }
-}
 
   private parseComplexAmount(text: string): number | null {
     const lowerText = text.toLowerCase().trim();
@@ -441,7 +441,7 @@ extractPerson(text: string): string | null {
 
   private parseFullTextNumber(text: string): number | null {
     const lowerText = text.toLowerCase();
-    
+
     // Patrones comunes
     const patterns = [
       // "cien mil"
@@ -459,13 +459,13 @@ extractPerson(text: string): string | null {
       // "diez millones"
       { pattern: /diez mill[oó]nes/i, value: 10000000 },
     ];
-    
+
     for (const { pattern, value } of patterns) {
       if (pattern.test(lowerText)) {
         return value;
       }
     }
-    
+
     return null;
   }
 
@@ -476,14 +476,14 @@ extractPerson(text: string): string | null {
       /para\s+(.+?)(?:\s+pesos|$)/i,
       /de\s+(.+?)(?:\s+pesos|$)/i,
     ];
-    
+
     for (const pattern of patterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
         return match[1].trim();
       }
     }
-    
+
     return null;
   }
 
@@ -584,23 +584,23 @@ extractPerson(text: string): string | null {
 
     // Agrega estos patrones a tu detectIntent:
 
-// Para consultas de tiempo
-if (/(?:desde cuándo|desde cuando|hace cuánto|hace cuanto)\s+(?:me debe|le debo)/i.test(lowerText)) {
-  console.log('✅ Intención: query_debt (consulta de tiempo)');
-  return 'query_debt';
-}
+    // Para consultas de tiempo
+    if (/(?:desde cuándo|desde cuando|hace cuánto|hace cuanto)\s+(?:me debe|le debo)/i.test(lowerText)) {
+      console.log('✅ Intención: query_debt (consulta de tiempo)');
+      return 'query_debt';
+    }
 
-// Para consultas de historial específico
-if (/(?:último pago|historial de pagos|pagos de)\s+.+/i.test(lowerText)) {
-  console.log('✅ Intención: query_last_payment o query_payment_history');
-  
-  // Distinguir entre último pago e historial completo
-  if (lowerText.includes('último pago') || lowerText.includes('ultimo pago')) {
-    return 'query_last_payment';
-  } else {
-    return 'query_payment_history';
-  }
-}
+    // Para consultas de historial específico
+    if (/(?:último pago|historial de pagos|pagos de)\s+.+/i.test(lowerText)) {
+      console.log('✅ Intención: query_last_payment o query_payment_history');
+
+      // Distinguir entre último pago e historial completo
+      if (lowerText.includes('último pago') || lowerText.includes('ultimo pago')) {
+        return 'query_last_payment';
+      } else {
+        return 'query_payment_history';
+      }
+    }
 
     for (const [intent, keywords] of Object.entries(keywordContext)) {
       for (const keyword of keywords) {
@@ -711,200 +711,206 @@ if (/(?:último pago|historial de pagos|pagos de)\s+.+/i.test(lowerText)) {
       'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
       'de', 'a', 'en', 'por', 'para', 'con', 'sin', 'sobre',
       'bajo', 'entre', 'hacia', 'desde', 'hasta',
-      
+
       // Palabras relacionadas con deudas
       'pesos', 'dólares', 'dinero', 'pago', 'deuda', 'cliente',
       'material', 'trabajo', 'servicio', 'producto', 'factura',
       'recibo', 'cuenta', 'saldo', 'total', 'resumen', 'mil',
       'ciento', 'cientos', 'miles', 'mucho', 'poco',
-      
+
       // Verbos comunes
       'debe', 'pagó', 'pagar', 'consultar', 'tiene', 'tengo',
       'tienes', 'hay', 'está', 'es', 'son', 'era', 'fueron',
       'hace', 'hizo', 'dijo', 'vamos', 'puede', 'quiero',
-      
+
       // Pronombres
       'me', 'te', 'se', 'nos', 'os', 'le', 'les', 'lo', 'la',
-      
+
       // Conjunciones
       'y', 'o', 'pero', 'porque', 'si', 'que', 'cuando',
 
       // Palabras de consulta
       'qué', 'que', 'quién', 'quien', 'cuánto', 'cuanto', 'personas', 'gente',
     ];
-    
+
     const lowerWord = word.toLowerCase();
     return commonWords.includes(lowerWord);
   }
 
-generateResponse(parsed: ParsedCommand, data?: any): string {
-  const { intent, entities } = parsed;
+  generateResponse(parsed: ParsedCommand, data?: any): string {
+    const { intent, entities } = parsed;
 
-  switch (intent) {
-    case 'add_debt':
-      if (entities.person && entities.amount) {
-        const rawText = parsed.rawText.toLowerCase();
-        const isOwing = rawText.includes('le debo') ||
-                       rawText.includes('debo a') ||
-                       rawText.includes('yo le debo');
+    switch (intent) {
+      case 'add_debt':
+        if (entities.person && entities.amount) {
+          const rawText = parsed.rawText.toLowerCase();
+          const isOwing = rawText.includes('le debo') ||
+            rawText.includes('debo a') ||
+            rawText.includes('yo le debo');
 
-        const date = new Date();
-        const formattedDate = date.toLocaleDateString('es-ES');
+          const date = new Date();
+          const formattedDate = date.toLocaleDateString('es-ES');
 
-        if (isOwing) {
-          return `✅ Registrado el ${formattedDate}: Le debes ${formatCurrency(entities.amount)} a ${entities.person}${entities.description ? ` por "${entities.description}"` : ''}.`;
-        } else {
-          return `✅ Registrado el ${formattedDate}: ${entities.person} te debe ${formatCurrency(entities.amount)}${entities.description ? ` por "${entities.description}"` : ''}.`;
-        }
-      }
-      return '¿Quién te debe cuánto?';
-      
-    case 'add_payment':
-      if (entities.person && entities.amount) {
-        const isMyPayment = parsed.rawText.toLowerCase().includes('le abono') ||
-                           parsed.rawText.toLowerCase().includes('abono a');
-        
-        const date = new Date();
-        const formattedDate = date.toLocaleDateString('es-ES');
-
-        if (isMyPayment) {
-          return `✅ Registrado el ${formattedDate}: Pago de ${formatCurrency(entities.amount)} a ${entities.person}.`;
-        } else {
-          return `✅ Registrado el ${formattedDate}: ${entities.person} te pagó ${formatCurrency(entities.amount)}.`;
-        }
-      }
-      return '¿Quién te pagó cuánto?';
-      
-    case 'query_debt':
-      if (entities.person) {
-        if (data?.amount) {
-          return `${entities.person} te debe ${formatCurrency(data.amount)}${data.description ? ` por "${data.description}"` : ''}.`;
-        }
-        return `${entities.person} no tiene deudas pendientes.`;
-      }
-      // Consultas generales
-      if (data && Array.isArray(data)) {
-        if (data.length === 0) {
-          return 'No tienes deudas pendientes.';
-        }
-        const list = data.map(d => `${d.person}: ${formatCurrency(d.amount)}`).join(', ');
-        return `📋 Tienes ${data.length} deuda${data.length > 1 ? 's' : ''}: ${list}.`;
-      }
-      return '¿De quién quieres saber cuánto te debe?';
-      
-    case 'show_summary':
-      if (data) {
-        const net = data.totalOwed - data.totalOwing;
-        const netText = net >= 0 ? 'a tu favor' : 'en tu contra';
-        return `📊 Resumen: Te deben ${formatCurrency(data.totalOwed)}. Tú debes ${formatCurrency(data.totalOwing)}. Balance: ${formatCurrency(Math.abs(net))} ${netText}.`;
-      }
-      return 'Aquí tienes el resumen de tus finanzas.';
-      
-    case 'create_client':
-      if (entities.person) {
-        const date = new Date().toLocaleDateString('es-ES');
-        return `✅ Cliente agregado el ${date}: ${entities.person}.`;
-      }
-      return '¿Cómo se llama el cliente?';
-      
-    // ✅ RESPUESTAS MEJORADAS PARA PAGOS HISTÓRICOS
-    case 'query_payment_history':
-      if (entities.person) {
-        if (data?.hasPayments) {
-          // Verificar datos necesarios
-          if (!data.totalPayments || data.totalPayments === 0) {
-            return `${entities.person} no tiene pagos registrados.`;
+          if (isOwing) {
+            return `✅ Registrado el ${formattedDate}: Le debes ${formatCurrency(entities.amount)} a ${entities.person}${entities.description ? ` por "${entities.description}"` : ''}.`;
+          } else {
+            return `✅ Registrado el ${formattedDate}: ${entities.person} te debe ${formatCurrency(entities.amount)}${entities.description ? ` por "${entities.description}"` : ''}.`;
           }
-          
-          if (data.totalPayments === 1) {
-            const payment = data.recentPayments?.[0] || data.lastPayment;
-            if (payment) {
-              const date = payment.formattedDate || payment.date || 'fecha desconocida';
-              const amount = formatCurrency(payment.amount || 0);
-              return `📅 ${entities.person} te pagó ${amount} el ${date}.`;
+        }
+        return '¿Quién te debe cuánto?';
+
+      case 'add_payment':
+        if (entities.person && entities.amount) {
+          const isMyPayment = parsed.rawText.toLowerCase().includes('le abono') ||
+            parsed.rawText.toLowerCase().includes('abono a');
+
+          const date = new Date();
+          const formattedDate = date.toLocaleDateString('es-ES');
+
+          if (isMyPayment) {
+            return `✅ Registrado el ${formattedDate}: Pago de ${formatCurrency(entities.amount)} a ${entities.person}.`;
+          } else {
+            return `✅ Registrado el ${formattedDate}: ${entities.person} te pagó ${formatCurrency(entities.amount)}.`;
+          }
+        }
+        return '¿Quién te pagó cuánto?';
+
+      case 'query_debt':
+        if (entities.person) {
+          if (data?.amount) {
+            // Verificar si es consulta de tiempo
+            if (data?.hasTimeQuery && data.formattedOldestDate) {
+              return `${entities.person} te debe ${formatCurrency(data.amount)} desde el ${data.formattedOldestDate} (hace ${data.daysSinceOldestDebt} días).`;
             }
+
+            // Consulta normal
+            return `${entities.person} te debe ${formatCurrency(data.amount)}${data.description ? ` por "${data.description}"` : ''}.`;
           }
-          
-          // Para múltiples pagos
-          const lastPayment = data.lastPayment || {};
-          const lastAmount = lastPayment.amount || 0;
-          const lastDate = lastPayment.formattedDate || lastPayment.date || 'fecha desconocida';
-          const daysSince = data.daysSinceLastPayment || 'varios';
-          
-          return `📅 Historial de ${entities.person}: ${data.totalPayments} pago${data.totalPayments > 1 ? 's' : ''} por ${formatCurrency(data.totalAmount || 0)}. Último pago: ${formatCurrency(lastAmount)} el ${lastDate} (hace ${daysSince} días).`;
+          return `${entities.person} no tiene deudas pendientes.`;
         }
-        return `${entities.person} no tiene pagos registrados.`;
-      }
-      return '¿De quién quieres ver el historial de pagos?';
-      
-    case 'query_last_payment':
-      if (entities.person) {
-        if (data?.hasPayments) {
-          const payment = data.lastPayment || {};
-          const timeDesc = payment.timeDescription || 'hace algún tiempo';
-          const date = payment.formattedDate || payment.date || 'fecha desconocida';
-          const amount = formatCurrency(payment.amount || 0);
-          const desc = payment.description ? ` - ${payment.description}` : '';
-          
-          return `📅 El último pago de ${entities.person} fue ${timeDesc} (${date}): ${amount}${desc}.`;
+        // Consultas generales
+        if (data && Array.isArray(data)) {
+          if (data.length === 0) {
+            return 'No tienes deudas pendientes.';
+          }
+          const list = data.map(d => `${d.person}: ${formatCurrency(d.amount)}`).join(', ');
+          return `📋 Tienes ${data.length} deuda${data.length > 1 ? 's' : ''}: ${list}.`;
         }
-        return `${entities.person} no tiene pagos registrados.`;
-      }
-      return '¿De quién quieres saber el último pago?';
-      
-    case 'query_overdue_debts':
-  if (data?.count && data.count > 0) {
-    const totalAmount = data.totalAmount || 0;
-    
-    // Verificar que formattedDebts existe y es un array
-    if (!data.formattedDebts || !Array.isArray(data.formattedDebts)) {
-      return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
-    }
-    
-    if (data.count === 1) {
-      const debt = data.formattedDebts[0];
-      const person = debt?.person || 'Alguien';
-      const amount = formatCurrency(debt?.amount || 0);
-      const date = debt?.formattedDate || 'alguna fecha';
-      const daysOverdue = debt?.daysOverdue || 'varios';
-      
-      return `⚠️ ${person} debe ${amount} desde ${date} (${daysOverdue} días de retraso).`;
-    }
-    
-    // Ordenar de forma segura
-    try {
-      // Filtrar solo deudas válidas - CORRECCIÓN: especificar tipo 'any'
-      const validDebts = data.formattedDebts.filter((debt: any) => 
-        debt && typeof debt === 'object'
-      );
-      
-      if (validDebts.length === 0) {
-        return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
-      }
-      
-      // Ordenar por días de retraso (de mayor a menor) - también especificar tipo
-      const sortedDebts = [...validDebts].sort((a: any, b: any) => {
-        const daysA = a?.daysOverdue || 0;
-        const daysB = b?.daysOverdue || 0;
-        return daysB - daysA;
-      });
-      
-      const topDebt = sortedDebts[0];
-      const person = topDebt?.person || 'Alguien';
-      const daysOverdue = topDebt?.daysOverdue || 'varios';
-      
-      return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}. La más antigua es ${person} con ${daysOverdue} días de retraso.`;
-    } catch (error) {
-      console.error('Error ordenando deudas:', error);
-      return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
+        return '¿De quién quieres saber cuánto te debe?';
+
+      case 'show_summary':
+        if (data) {
+          const net = data.totalOwed - data.totalOwing;
+          const netText = net >= 0 ? 'a tu favor' : 'en tu contra';
+          return `📊 Resumen: Te deben ${formatCurrency(data.totalOwed)}. Tú debes ${formatCurrency(data.totalOwing)}. Balance: ${formatCurrency(Math.abs(net))} ${netText}.`;
+        }
+        return 'Aquí tienes el resumen de tus finanzas.';
+
+      case 'create_client':
+        if (entities.person) {
+          const date = new Date().toLocaleDateString('es-ES');
+          return `✅ Cliente agregado el ${date}: ${entities.person}.`;
+        }
+        return '¿Cómo se llama el cliente?';
+
+      // ✅ RESPUESTAS MEJORADAS PARA PAGOS HISTÓRICOS
+      case 'query_payment_history':
+        if (entities.person) {
+          if (data?.hasPayments) {
+            // Verificar datos necesarios
+            if (!data.totalPayments || data.totalPayments === 0) {
+              return `${entities.person} no tiene pagos registrados.`;
+            }
+
+            if (data.totalPayments === 1) {
+              const payment = data.recentPayments?.[0] || data.lastPayment;
+              if (payment) {
+                const date = payment.formattedDate || payment.date || 'fecha desconocida';
+                const amount = formatCurrency(payment.amount || 0);
+                return `📅 ${entities.person} te pagó ${amount} el ${date}.`;
+              }
+            }
+
+            // Para múltiples pagos
+            const lastPayment = data.lastPayment || {};
+            const lastAmount = lastPayment.amount || 0;
+            const lastDate = lastPayment.formattedDate || lastPayment.date || 'fecha desconocida';
+            const daysSince = data.daysSinceLastPayment || 'varios';
+
+            return `📅 Historial de ${entities.person}: ${data.totalPayments} pago${data.totalPayments > 1 ? 's' : ''} por ${formatCurrency(data.totalAmount || 0)}. Último pago: ${formatCurrency(lastAmount)} el ${lastDate} (hace ${daysSince} días).`;
+          }
+          return `${entities.person} no tiene pagos registrados.`;
+        }
+        return '¿De quién quieres ver el historial de pagos?';
+
+      case 'query_last_payment':
+        if (entities.person) {
+          if (data?.hasPayments) {
+            const payment = data.lastPayment || {};
+            const timeDesc = payment.timeDescription || 'hace algún tiempo';
+            const date = payment.formattedDate || payment.date || 'fecha desconocida';
+            const amount = formatCurrency(payment.amount || 0);
+            const desc = payment.description ? ` - ${payment.description}` : '';
+
+            return `📅 El último pago de ${entities.person} fue ${timeDesc} (${date}): ${amount}${desc}.`;
+          }
+          return `${entities.person} no tiene pagos registrados.`;
+        }
+        return '¿De quién quieres saber el último pago?';
+
+      case 'query_overdue_debts':
+        if (data?.count && data.count > 0) {
+          const totalAmount = data.totalAmount || 0;
+
+          // Verificar que formattedDebts existe y es un array
+          if (!data.formattedDebts || !Array.isArray(data.formattedDebts)) {
+            return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
+          }
+
+          if (data.count === 1) {
+            const debt = data.formattedDebts[0];
+            const person = debt?.person || 'Alguien';
+            const amount = formatCurrency(debt?.amount || 0);
+            const date = debt?.formattedDate || 'alguna fecha';
+            const daysOverdue = debt?.daysOverdue || 'varios';
+
+            return `⚠️ ${person} debe ${amount} desde ${date} (${daysOverdue} días de retraso).`;
+          }
+
+          // Ordenar de forma segura
+          try {
+            // Filtrar solo deudas válidas - CORRECCIÓN: especificar tipo 'any'
+            const validDebts = data.formattedDebts.filter((debt: any) =>
+              debt && typeof debt === 'object'
+            );
+
+            if (validDebts.length === 0) {
+              return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
+            }
+
+            // Ordenar por días de retraso (de mayor a menor) - también especificar tipo
+            const sortedDebts = [...validDebts].sort((a: any, b: any) => {
+              const daysA = a?.daysOverdue || 0;
+              const daysB = b?.daysOverdue || 0;
+              return daysB - daysA;
+            });
+
+            const topDebt = sortedDebts[0];
+            const person = topDebt?.person || 'Alguien';
+            const daysOverdue = topDebt?.daysOverdue || 'varios';
+
+            return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}. La más antigua es ${person} con ${daysOverdue} días de retraso.`;
+          } catch (error) {
+            console.error('Error ordenando deudas:', error);
+            return `⚠️ Hay ${data.count} deuda${data.count > 1 ? 's' : ''} vencida${data.count > 1 ? 's' : ''} por ${formatCurrency(totalAmount)}.`;
+          }
+        }
+        return '🎉 ¡Todos están al día! No hay deudas vencidas.';
+
+      default:
+        return 'No entendí eso. Prueba con: "María me debe 2000 pesos" o "¿cuándo me pagó Juan?".';
     }
   }
-  return '🎉 ¡Todos están al día! No hay deudas vencidas.';
-      
-    default:
-      return 'No entendí eso. Prueba con: "María me debe 2000 pesos" o "¿cuándo me pagó Juan?".';
-  }
-}
 }
 
 

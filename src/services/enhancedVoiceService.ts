@@ -1007,62 +1007,119 @@ class EnhancedVoiceService {
     }
   }
 
-  private async handleQueryDebt(parsed: ParsedCommand): Promise<any> {
-    const { person } = parsed.entities;
+private async handleQueryDebt(parsed: ParsedCommand): Promise<any> {
+  const { person } = parsed.entities;
+  const rawText = parsed.rawText.toLowerCase();
 
-    if (!person && (parsed.rawText.toLowerCase().includes('les debo') || parsed.rawText.toLowerCase().includes('debo a'))) {
-      // CAMBIADO: Ahora es async/await
-      const debts = await storageService.getDebts();
-      const owingDebts = debts.filter(d => d.type === 'owing' && d.status === 'pending');
+  console.log('🔍 handleQueryDebt - Texto:', rawText);
+  console.log('🔍 handleQueryDebt - Persona:', person);
 
-      return owingDebts.map(d => ({
-        person: d.person,
-        amount: d.amount - (d.paidAmount || 0),
-        description: d.description
-      }));
-    }
+  // Verificar si es consulta de tiempo (desde cuándo, hace cuánto)
+  const isTimeQuery = rawText.includes('desde cuándo') || 
+                     rawText.includes('desde cuando') ||
+                     rawText.includes('hace cuánto') ||
+                     rawText.includes('hace cuanto');
 
-    if (!person) {
-      throw new Error('¿De quién quieres consultar la deuda?');
-    }
+  console.log('🔍 handleQueryDebt - ¿Es consulta de tiempo?:', isTimeQuery);
 
-    // CAMBIADO: Ahora es async/await
-    const clients = await storageService.getClients();
-    const client = clients.find(c =>
-      c.name.toLowerCase().includes(person.toLowerCase())
-    );
-
-    if (!client) {
-      throw new Error(`${person} no está registrado como cliente`);
-    }
-
-    // CAMBIADO: Ahora es async/await
+  if (!person && (rawText.includes('les debo') || rawText.includes('debo a'))) {
     const debts = await storageService.getDebts();
-    const clientDebts = debts.filter(d =>
-      d.type === 'owed' &&
-      d.person.toLowerCase() === client.name.toLowerCase()
-    );
+    const owingDebts = debts.filter(d => d.type === 'owing' && d.status === 'pending');
 
-    if (clientDebts.length === 0) {
-      return {
-        amount: 0,
-        message: 'No hay deudas registradas',
-        clientName: client.name
-      };
-    }
+    return owingDebts.map(d => ({
+      person: d.person,
+      amount: d.amount - (d.paidAmount || 0),
+      description: d.description,
+      date: d.date, // Agregar fecha
+      formattedDate: new Date(d.date).toLocaleDateString('es-ES')
+    }));
+  }
 
-    const pendingDebts = clientDebts.filter(d => d.status !== 'paid');
-    const totalPending = pendingDebts.reduce((sum, d) =>
-      sum + (d.amount - (d.paidAmount || 0)), 0
-    );
+  if (!person) {
+    throw new Error('¿De quién quieres consultar la deuda?');
+  }
 
+  const clients = await storageService.getClients();
+  const client = clients.find(c =>
+    c.name.toLowerCase().includes(person.toLowerCase())
+  );
+
+  if (!client) {
+    throw new Error(`${person} no está registrado como cliente`);
+  }
+
+  const debts = await storageService.getDebts();
+  const clientDebts = debts.filter(d =>
+    d.type === 'owed' &&
+    d.person.toLowerCase() === client.name.toLowerCase()
+  );
+
+  if (clientDebts.length === 0) {
     return {
+      amount: 0,
+      message: 'No hay deudas registradas',
       clientName: client.name,
-      amount: totalPending,
-      pendingCount: pendingDebts.length,
-      totalCount: clientDebts.length,
+      hasTimeQuery: isTimeQuery,
+      oldestDebtDate: null,
+      timeMessage: `${person} no tiene deudas registradas.`
     };
   }
+
+  const pendingDebts = clientDebts.filter(d => d.status !== 'paid');
+  const totalPending = pendingDebts.reduce((sum, d) =>
+    sum + (d.amount - (d.paidAmount || 0)), 0
+  );
+
+  // Encontrar la deuda más antigua para consultas de tiempo
+  let oldestDebt = null;
+  let oldestDate = null;
+  let formattedOldestDate = null;
+  let daysSinceOldestDebt = null;
+  
+  if (pendingDebts.length > 0) {
+    // Ordenar por fecha (más antigua primero)
+    const sortedByDate = [...pendingDebts].sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateA - dateB;
+    });
+    
+    oldestDebt = sortedByDate[0];
+    oldestDate = oldestDebt.date;
+    formattedOldestDate = new Date(oldestDate).toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+    
+    // Calcular días desde la deuda más antigua
+    const today = new Date();
+    const debtDate = new Date(oldestDate);
+    const diffTime = Math.abs(today.getTime() - debtDate.getTime());
+    daysSinceOldestDebt = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  }
+
+  return {
+    clientName: client.name,
+    amount: totalPending,
+    pendingCount: pendingDebts.length,
+    totalCount: clientDebts.length,
+    // Información para consultas de tiempo
+    hasTimeQuery: isTimeQuery,
+    oldestDebtDate: oldestDate,
+    formattedOldestDate: formattedOldestDate,
+    daysSinceOldestDebt: daysSinceOldestDebt,
+    oldestDebtDescription: oldestDebt?.description || 'Sin descripción',
+    // Para mostrar todas las deudas con fechas
+    allDebts: pendingDebts.map(debt => ({
+      amount: debt.amount - (debt.paidAmount || 0),
+      date: debt.date,
+      formattedDate: new Date(debt.date).toLocaleDateString('es-ES'),
+      description: debt.description || 'Sin descripción',
+      daysSince: Math.ceil((new Date().getTime() - new Date(debt.date).getTime()) / (1000 * 60 * 60 * 24))
+    }))
+  };
+}
 
   private async handleCreateClient(parsed: ParsedCommand): Promise<boolean> {
     const { person } = parsed.entities;
