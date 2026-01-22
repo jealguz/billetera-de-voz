@@ -105,6 +105,43 @@ export interface Client {
   updatedAt: Date;
 }
 
+// Agrega esto a tu interface Client:
+export interface Client {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  totalDebt: number;
+  totalPaid: number;
+  createdAt: Date;
+  updatedAt: Date;
+  lastTransaction?: Date;
+  
+  // ✅ NUEVO: Campos para manejar nombres informales
+  nameComponents?: {
+    baseName: string;         // "Jose"
+    descriptor?: string;      // "supermercado", "vecino", etc.
+    type: 'business' | 'relationship' | 'occupation' | 'location' | 'formal';
+    identifier: string;       // "jose_supermercado"
+  };
+}
+
+// Y en Debt interface, agrega:
+export interface Debt {
+  id: string;
+  type: 'owed' | 'owing';
+  person: string;
+  clientId?: string; // ✅ NUEVO: Referencia al cliente
+  amount: number;
+  description?: string;
+  date: Date;
+  status: 'pending' | 'partial' | 'paid';
+  paidAmount?: number;
+  payments?: Payment[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Extender Summary para incluir clientes
 export interface BusinessSummary {
   totalClients: number;

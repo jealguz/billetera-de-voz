@@ -3,8 +3,130 @@ import { Client, ClientSummary, Debt } from '../types';
 const CLIENTS_KEY = 'wallet-voice-business-clients';
 const BUSINESS_DEBTS_KEY = 'wallet-voice-business-debts';
 
+// ✅ NUEVO: Diccionario de palabras descriptivas comunes
+const DESCRIPTOR_WORDS = {
+  business: [
+    'supermercado', 'tienda', 'almacén', 'negocio', 'comercio', 'restaurante',
+    'cafetería', 'papelería', 'farmacia', 'licorera', 'panadería', 'carnicería',
+    'ferretería', 'zapatería', 'ropa', 'mercado', 'minimercado', 'droguería'
+  ],
+  relationship: [
+    'vecino', 'vecina', 'amigo', 'amiga', 'primo', 'prima', 'hermano', 'hermana',
+    'tío', 'tía', 'sobrino', 'sobrina', 'compañero', 'compañera', 'colega'
+  ],
+  occupation: [
+    'panadero', 'panadera', 'carpintero', 'carpintera', 'doctor', 'doctora',
+    'médico', 'enfermero', 'enfermera', 'profesor', 'profesora', 'maestro', 'maestra'
+  ],
+  location: [
+    'esquina', 'barrio', 'calle', 'carrera', 'avenida', 'centro', 'mercado'
+  ]
+};
+
 export const clientService = {
-  // ===== CLIENTES =====
+  // ===== NUEVO: NORMALIZACIÓN DE NOMBRES =====
+  
+  normalizeNameForSearch(name: string): string {
+    return name
+      .toLowerCase()
+      .normalize('NFD') // Eliminar acentos
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+  },
+
+  // Detectar si un nombre tiene descriptor informal
+  parseNameComponents(fullName: string): { 
+    baseName: string; 
+    descriptor?: string;
+    type?: 'business' | 'relationship' | 'occupation' | 'location' | 'formal';
+  } {
+    const lowerName = fullName.toLowerCase();
+    const words = lowerName.split(' ').filter(w => w.length > 0);
+    
+    // Si solo tiene una palabra, asumir que es nombre formal
+    if (words.length === 1) {
+      return { baseName: this.capitalizeName(words[0]), type: 'formal' };
+    }
+    
+    // Verificar si la última palabra es un descriptor
+    const lastWord = words[words.length - 1];
+    const firstName = words[0];
+    
+    // Buscar en diccionarios
+    for (const [type, wordList] of Object.entries(DESCRIPTOR_WORDS)) {
+      if (wordList.includes(lastWord)) {
+        // Es un nombre informal con descriptor
+        return {
+          baseName: this.capitalizeName(firstName),
+          descriptor: lastWord,
+          type: type as any
+        };
+      }
+    }
+    
+    // Si no es descriptor, asumir que es apellido (nombre formal)
+    return { 
+      baseName: this.capitalizeName(fullName), 
+      type: 'formal' 
+    };
+  },
+
+  // Crear identificador único para el cliente
+  createClientIdentifier(fullName: string): string {
+    const parsed = this.parseNameComponents(fullName);
+    
+    if (parsed.descriptor) {
+      // Para nombres informales: "jose_supermercado"
+      return `${this.normalizeNameForSearch(parsed.baseName)}_${parsed.descriptor}`;
+    } else {
+      // Para nombres formales: "jose_castro"
+      return this.normalizeNameForSearch(fullName).replace(/\s+/g, '_');
+    }
+  },
+
+  // Comparar nombres para ver si son el mismo cliente
+  areNamesSimilar(name1: string, name2: string): boolean {
+    const parsed1 = this.parseNameComponents(name1);
+    const parsed2 = this.parseNameComponents(name2);
+    
+    // Si ambos tienen el mismo nombre base pero diferentes descriptores
+    // Ej: "Jose" vs "Jose supermercado"
+    const norm1 = this.normalizeNameForSearch(parsed1.baseName);
+    const norm2 = this.normalizeNameForSearch(parsed2.baseName);
+    
+    // Si tienen diferente nombre base, son personas diferentes
+    if (norm1 !== norm2) return false;
+    
+    // Si tienen el mismo nombre base pero ambos son formales
+    // Ej: "Jose Castro" vs "Jose Pérez" - DIFERENTES (diferentes apellidos)
+    if (parsed1.type === 'formal' && parsed2.type === 'formal') {
+      // Para nombres formales, necesitan ser idénticos
+      return this.normalizeNameForSearch(name1) === this.normalizeNameForSearch(name2);
+    }
+    
+    // Si uno es formal y otro informal con descriptor
+    // Ej: "Jose Castro" vs "Jose supermercado" - DIFERENTES
+    if ((parsed1.type === 'formal' && parsed2.descriptor) || 
+        (parsed2.type === 'formal' && parsed1.descriptor)) {
+      return false; // Son personas diferentes
+    }
+    
+    // Si ambos son informales pero con diferente descriptor
+    // Ej: "Jose supermercado" vs "Jose vecino" - DIFERENTES
+    if (parsed1.descriptor && parsed2.descriptor && parsed1.descriptor !== parsed2.descriptor) {
+      return false; // Son personas diferentes
+    }
+    
+    // Si llegamos aquí, son la misma persona
+    return true;
+  },
+
+  capitalizeName(name: string): string {
+    if (!name) return name;
+    return name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  },
+
+  // ===== CLIENTES (MODIFICADO) =====
   getClients(): Client[] {
     try {
       const clients = localStorage.getItem(CLIENTS_KEY);
@@ -19,19 +141,38 @@ export const clientService = {
     localStorage.setItem(CLIENTS_KEY, JSON.stringify(clients));
   },
 
-  findOrCreateClient(name: string, phone?: string): Client {
+  // ✅ MEJORADO: Encontrar o crear cliente con manejo de nombres informales
+  findOrCreateClient(fullName: string, phone?: string): Client {
     const clients = this.getClients();
-    const existingClient = clients.find(c => 
-      c.name.toLowerCase().trim() === name.toLowerCase().trim()
-    );
+    
+    // 1. Normalizar el nombre de búsqueda
+    const searchName = fullName.trim();
+    
+    // 2. Buscar cliente existente (comparación inteligente)
+    const existingClient = clients.find(c => {
+      // Verificar si son nombres similares
+      return this.areNamesSimilar(c.name, searchName);
+    });
     
     if (existingClient) {
+      console.log('✅ Cliente existente encontrado:', existingClient.name, 'para:', searchName);
       return existingClient;
     }
     
+    // 3. Crear nuevo cliente con información del tipo de nombre
+    const parsedName = this.parseNameComponents(searchName);
+    const clientId = crypto.randomUUID();
+    
     const newClient: Client = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
+      id: clientId,
+      name: searchName,
+      // ✅ NUEVO: Guardar componentes del nombre
+      nameComponents: {
+        baseName: parsedName.baseName,
+        descriptor: parsedName.descriptor,
+        type: parsedName.type || 'formal',
+        identifier: this.createClientIdentifier(searchName)
+      },
       phone,
       totalDebt: 0,
       totalPaid: 0,
@@ -41,6 +182,8 @@ export const clientService = {
     
     clients.push(newClient);
     this.saveClients(clients);
+    
+    console.log('✅ Nuevo cliente creado:', newClient.name, 'Tipo:', parsedName.type);
     return newClient;
   },
 
@@ -58,6 +201,50 @@ export const clientService = {
     }
   },
 
+  // ✅ NUEVO: Buscar cliente por nombre (búsqueda flexible)
+  findClientByName(fullName: string): Client | null {
+    const clients = this.getClients();
+    const searchName = fullName.trim();
+    
+    // 1. Primero buscar coincidencia exacta
+    const exactMatch = clients.find(c => 
+      this.normalizeNameForSearch(c.name) === this.normalizeNameForSearch(searchName)
+    );
+    if (exactMatch) return exactMatch;
+    
+    // 2. Buscar por nombre base (ej: "Jose" en "Jose supermercado")
+    const parsedSearch = this.parseNameComponents(searchName);
+    const baseNameMatch = clients.find(c => {
+      const parsedClient = this.parseNameComponents(c.name);
+      return this.normalizeNameForSearch(parsedClient.baseName) === 
+             this.normalizeNameForSearch(parsedSearch.baseName);
+    });
+    
+    if (baseNameMatch) {
+      console.log('⚠️ Advertencia: Encontrado cliente con nombre base similar:', 
+        baseNameMatch.name, 'para:', searchName);
+      return baseNameMatch;
+    }
+    
+    return null;
+  },
+
+  // ✅ NUEVO: Verificar si un cliente existe
+  clientExists(fullName: string): boolean {
+    return this.findClientByName(fullName) !== null;
+  },
+
+  // ✅ NUEVO: Obtener todos los clientes con un nombre base específico
+  getClientsByBaseName(baseName: string): Client[] {
+    const clients = this.getClients();
+    const normalizedBase = this.normalizeNameForSearch(baseName);
+    
+    return clients.filter(c => {
+      const parsed = this.parseNameComponents(c.name);
+      return this.normalizeNameForSearch(parsed.baseName) === normalizedBase;
+    });
+  },
+
   // ===== DEUDAS DE CLIENTES =====
   getBusinessDebts(): Debt[] {
     try {
@@ -73,17 +260,25 @@ export const clientService = {
     localStorage.setItem(BUSINESS_DEBTS_KEY, JSON.stringify(debts));
   },
 
-  // Registrar deuda de cliente
-  addClientDebt(clientName: string, amount: number, description?: string): { client: Client; debt: Debt } {
-    // 1. Encontrar o crear cliente
-    const client = this.findOrCreateClient(clientName);
+  // ✅ MEJORADO: Registrar deuda con manejo de nombres
+  addClientDebt(fullName: string, amount: number, description?: string): { client: Client; debt: Debt } {
+    // 1. Encontrar o crear cliente (con manejo de nombres)
+    const client = this.findOrCreateClient(fullName);
     
-    // 2. Crear deuda
+    // 2. Verificar si hay clientes con nombre similar
+    const similarClients = this.getClientsByBaseName(fullName);
+    if (similarClients.length > 1) {
+      console.log('⚠️ Advertencia: Hay múltiples clientes con nombre similar:', 
+        similarClients.map(c => c.name).join(', '));
+    }
+    
+    // 3. Crear deuda
     const debts = this.getBusinessDebts();
     const newDebt: Debt = {
       id: crypto.randomUUID(),
       type: 'owed',
-      person: client.name,
+      person: client.name, // Guardar el nombre exacto como se registró
+      clientId: client.id, // ✅ NUEVO: Referencia al cliente
       amount,
       description: description || 'Deuda de cliente',
       date: new Date(),
@@ -96,7 +291,7 @@ export const clientService = {
     debts.push(newDebt);
     this.saveBusinessDebts(debts);
     
-    // 3. Actualizar cliente
+    // 4. Actualizar cliente
     this.updateClient(client.id, {
       totalDebt: client.totalDebt + amount,
       lastTransaction: new Date(),
@@ -105,24 +300,29 @@ export const clientService = {
     return { client, debt: newDebt };
   },
 
-  // Registrar pago de cliente
-  addClientPayment(clientName: string, amount: number, notes?: string): boolean {
-    const clients = this.getClients();
-    const client = clients.find(c => 
-      c.name.toLowerCase().includes(clientName.toLowerCase())
-    );
+  // ✅ MEJORADO: Registrar pago con manejo de nombres
+  addClientPayment(fullName: string, amount: number, notes?: string): boolean {
+    // Buscar cliente (búsqueda flexible)
+    const client = this.findClientByName(fullName);
     
     if (!client) {
-      console.error('Cliente no encontrado:', clientName);
+      console.error('Cliente no encontrado:', fullName);
+      
+      // ✅ NUEVO: Mostrar sugerencias si hay nombres similares
+      const similar = this.getClientsByBaseName(fullName);
+      if (similar.length > 0) {
+        console.log('¿Quizás te refieres a:', similar.map(c => c.name).join(', '));
+      }
+      
       return false;
     }
     
-    // Buscar deudas pendientes del cliente
+    // Resto del código igual que antes...
     const debts = this.getBusinessDebts();
     const clientDebts = debts.filter(d => 
-      d.person.toLowerCase() === client.name.toLowerCase() && 
+      d.clientId === client.id && // ✅ NUEVO: Usar clientId en lugar de nombre
       d.status !== 'paid'
-    ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Más antigua primero
+    ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     
     if (clientDebts.length === 0) {
       console.error('El cliente no tiene deudas pendientes');
@@ -158,7 +358,7 @@ export const clientService = {
           debtId: debt.id,
           amount: paymentAmount,
           date: new Date(),
-          note: notes || `Pago de ${clientName}`,
+          note: notes || `Pago de ${client.name}`,
         });
         
         remainingPayment -= paymentAmount;
@@ -177,19 +377,14 @@ export const clientService = {
     return true;
   },
 
-  // ===== CONSULTAS =====
-  getClientSummary(clientName: string): ClientSummary | null {
-    const clients = this.getClients();
-    const client = clients.find(c => 
-      c.name.toLowerCase().includes(clientName.toLowerCase())
-    );
+  // ===== CONSULTAS (MODIFICADAS PARA USAR clientId) =====
+  getClientSummary(fullName: string): ClientSummary | null {
+    const client = this.findClientByName(fullName);
     
     if (!client) return null;
     
     const debts = this.getBusinessDebts();
-    const clientDebts = debts.filter(d => 
-      d.person.toLowerCase() === client.name.toLowerCase()
-    );
+    const clientDebts = debts.filter(d => d.clientId === client.id);
     
     const pendingDebts = clientDebts.filter(d => d.status !== 'paid').length;
     const paidDebts = clientDebts.filter(d => d.status === 'paid').length;
@@ -242,10 +437,10 @@ export const clientService = {
         totalDebt: client.totalDebt,
         totalPaid: client.totalPaid,
         pendingDebts: debts.filter(d => 
-          d.person === client.name && d.status !== 'paid'
+          d.clientId === client.id && d.status !== 'paid'
         ).length,
         paidDebts: debts.filter(d => 
-          d.person === client.name && d.status === 'paid'
+          d.clientId === client.id && d.status === 'paid'
         ).length,
       }));
     
@@ -261,24 +456,29 @@ export const clientService = {
     };
   },
 
-  // ===== BÚSQUEDA =====
+  // ===== BÚSQUEDA MEJORADA =====
   searchClients(query: string): Client[] {
     const clients = this.getClients();
     const lowerQuery = query.toLowerCase();
     
-    return clients.filter(client =>
-      client.name.toLowerCase().includes(lowerQuery) ||
-      client.phone?.toLowerCase().includes(lowerQuery) ||
-      client.email?.toLowerCase().includes(lowerQuery)
-    );
+    return clients.filter(client => {
+      // Buscar en nombre
+      if (client.name.toLowerCase().includes(lowerQuery)) return true;
+      
+      // Buscar en nombre base
+      if (client.nameComponents?.baseName?.toLowerCase().includes(lowerQuery)) return true;
+      
+      // Buscar en descriptor
+      if (client.nameComponents?.descriptor?.toLowerCase().includes(lowerQuery)) return true;
+      
+      // Buscar en teléfono
+      if (client.phone?.toLowerCase().includes(lowerQuery)) return true;
+      
+      return false;
+    });
   },
 
   getClientDebts(clientId: string): Debt[] {
-    const client = this.getClients().find(c => c.id === clientId);
-    if (!client) return [];
-    
-    return this.getBusinessDebts().filter(d => 
-      d.person.toLowerCase() === client.name.toLowerCase()
-    );
+    return this.getBusinessDebts().filter(d => d.clientId === clientId);
   },
 };
