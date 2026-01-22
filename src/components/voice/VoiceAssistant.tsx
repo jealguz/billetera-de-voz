@@ -34,7 +34,7 @@ const VoiceAssistant: React.FC = () => {
   };
 
   return (
-    <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+    <Card className="bg-gradient-to-r from-blue-400 to-blue-500 text-white">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="bg-white bg-opacity-20 p-2 rounded-full">
