@@ -16,22 +16,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [error, setError] = useState('');
   const { isInstallable, installPWA } = usePWAInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
-  const [showAdNotice, setShowAdNotice] = useState(false); // Empieza en false
+  const [showAdNotice, setShowAdNotice] = useState(true); // ✅ CAMBIADO: Empieza en TRUE
   const [showScrollHint, setShowScrollHint] = useState(true);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
-  // Mostrar modal de anuncios si es la primera vez
-  useEffect(() => {
-    const hasSeenAdNotice = localStorage.getItem('walletVoice_adNoticeSeen');
-    
-    if (!hasSeenAdNotice) {
-      // Mostrar después de un breve delay, sobre el login
-      setTimeout(() => {
-        setShowAdNotice(true);
-      }, 800);
-    }
-  }, []);
-
+  // ✅ ELIMINADO TODO EL CÓDIGO QUE VERIFICA localStorage
+  // El modal sale SIEMPRE al iniciar
+  
   // Ocultar hint de scroll
   useEffect(() => {
     if (showAdNotice && showScrollHint) {
@@ -83,8 +74,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   };
 
   const handleAcceptAds = () => {
-    localStorage.setItem('walletVoice_adNoticeSeen', 'true');
-    localStorage.setItem('walletVoice_adNoticeSupported', 'true');
+    // ✅ NO guardamos en localStorage para que salga SIEMPRE
     setShowAdNotice(false);
     
     toast.success('¡Gracias por apoyar Wallet Voice! 🎉', {
@@ -98,8 +88,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   };
 
   const handleContinueWithoutSupport = () => {
-    localStorage.setItem('walletVoice_adNoticeSeen', 'true');
-    localStorage.setItem('walletVoice_adNoticeSupported', 'false');
+    // ✅ NO guardamos en localStorage para que salga SIEMPRE
     setShowAdNotice(false);
     
     toast('Puedes cambiar tu decisión en cualquier momento en Configuración', {
@@ -132,6 +121,97 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
         }}
       />
 
+      {/* ✅ Modal de Anuncios - Se muestra SIEMPRE */}
+      {showAdNotice && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[1000] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-blue-300 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-5 rounded-t-2xl text-center flex-shrink-0">
+              <div className="w-14 h-14 mx-auto mb-3 bg-white rounded-xl p-3 shadow-lg">
+                <AlertCircle className="w-8 h-8 mx-auto text-blue-600" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Información sobre anuncios</h2>
+            </div>
+
+            {/* Contenido con scroll */}
+            <div 
+              ref={modalContentRef}
+              className="flex-1 overflow-y-auto p-5"
+              style={{ maxHeight: 'calc(85vh - 180px)' }}
+            >
+              {showScrollHint && (
+                <div className="text-center mb-3 animate-bounce">
+                  <div className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
+                    <ChevronDown className="w-3 h-3" />
+                    <span>Desliza para ver más</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-gray-700 mb-4">
+                    Para mantener <span className="font-bold text-blue-600">Wallet Voice completamente gratuita</span>, mostramos anuncios no intrusivos.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Sin costos ocultos</p>
+                      <p className="text-sm text-gray-600">Nunca pagarás por funciones básicas</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Anuncios discretos</p>
+                      <p className="text-sm text-gray-600">Solo banners que no interrumpen tu experiencia</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Apoyo voluntario</p>
+                      <p className="text-sm text-gray-600">Puedes ver anuncios adicionales para apoyarnos</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                  <p className="text-center text-blue-800 text-sm">
+                    <Heart className="w-4 h-4 inline mr-1 text-red-500" />
+                    ¡Tu apoyo nos ayuda a seguir mejorando!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex-shrink-0">
+              <div className="space-y-3">
+                <button
+                  onClick={handleAcceptAds}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
+                >
+                  ¡Entiendo y quiero apoyar!
+                </button>
+
+                <button
+                  onClick={handleContinueWithoutSupport}
+                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Entiendo, continuar sin apoyar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Install Banner */}
       {isInstallable && showInstallBanner && (
         <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
@@ -162,7 +242,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
         </div>
       )}
 
-      {/* Login Form - SIEMPRE visible */}
+      {/* Login Form - Visible DESPUÉS del modal */}
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
@@ -277,97 +357,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
           </p>
         </div>
       </div>
-
-      {/* Modal de Anuncios - Se muestra sobre el login */}
-      {showAdNotice && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-blue-300 flex flex-col max-h-[85vh]">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-5 rounded-t-2xl text-center flex-shrink-0">
-              <div className="w-14 h-14 mx-auto mb-3 bg-white rounded-xl p-3 shadow-lg">
-                <AlertCircle className="w-8 h-8 mx-auto text-blue-600" />
-              </div>
-              <h2 className="text-xl font-bold text-white">Información sobre anuncios</h2>
-            </div>
-
-            {/* Contenido con scroll */}
-            <div 
-              ref={modalContentRef}
-              className="flex-1 overflow-y-auto p-5"
-              style={{ maxHeight: 'calc(85vh - 180px)' }}
-            >
-              {showScrollHint && (
-                <div className="text-center mb-3 animate-bounce">
-                  <div className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
-                    <ChevronDown className="w-3 h-3" />
-                    <span>Desliza para ver más</span>
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="text-center">
-                  <p className="text-gray-700 mb-4">
-                    Para mantener <span className="font-bold text-blue-600">Wallet Voice completamente gratuita</span>, mostramos anuncios no intrusivos.
-                  </p>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-gray-900">Sin costos ocultos</p>
-                      <p className="text-sm text-gray-600">Nunca pagarás por funciones básicas</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-gray-900">Anuncios discretos</p>
-                      <p className="text-sm text-gray-600">Solo banners que no interrumpen tu experiencia</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-gray-900">Apoyo voluntario</p>
-                      <p className="text-sm text-gray-600">Puedes ver anuncios adicionales para apoyarnos</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                  <p className="text-center text-blue-800 text-sm">
-                    <Heart className="w-4 h-4 inline mr-1 text-red-500" />
-                    ¡Tu apoyo nos ayuda a seguir mejorando!
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex-shrink-0">
-              <div className="space-y-3">
-                <button
-                  onClick={handleAcceptAds}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
-                >
-                  ¡Entiendo y quiero apoyar!
-                </button>
-
-                <button
-                  onClick={handleContinueWithoutSupport}
-                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
-                >
-                  Entiendo, continuar sin apoyar
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
