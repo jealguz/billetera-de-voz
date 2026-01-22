@@ -12,13 +12,14 @@ const BalanceCards: React.FC = () => {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'owing' | 'owed'>('owed');
-  const [loading, setLoading] = useState(true); // Estado de carga
+  const [showBalancesModal, setShowBalancesModal] = useState(false); // Modal para balances por persona
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadData = async () => { // Haz la función asíncrona
+    const loadData = async () => {
       try {
         setLoading(true);
-        const loadedDebts = await storageService.getDebts(); // Agrega await
+        const loadedDebts = await storageService.getDebts();
         setDebts(loadedDebts);
       } catch (error) {
         console.error('Error cargando deudas:', error);
@@ -90,7 +91,6 @@ const BalanceCards: React.FC = () => {
   const getOwedDebts = () => debts.filter(d => d.type === 'owed' && d.status !== 'paid');
   const getOwingDebts = () => debts.filter(d => d.type === 'owing' && d.status !== 'paid');
 
-  // Mostrar loading mientras carga
   if (loading) {
     return (
       <div className="mb-6">
@@ -130,26 +130,114 @@ const BalanceCards: React.FC = () => {
         </div>
       </div>
 
+      {/* Botón para abrir modal de balances */}
       {clientBalances.length > 0 && (
-        <div className="bg-white rounded-xl shadow-sm p-4">
-          <h3 className="text-lg font-semibold mb-3 text-gray-800">Balances por persona</h3>
-          <div className="space-y-2">
-            {clientBalances.map((cb, index) => (
-              <div key={index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-lg">
-                <span className="font-medium text-gray-700">{cb.name}</span>
-                <span className={`font-bold ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                  {cb.balance > 0 ? '+' : ''}{formatCurrency(Math.abs(cb.balance))}
-                  <span className="text-xs ml-1 opacity-75">
-                    ({cb.balance > 0 ? 'te debe' : 'le debes'})
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
+        <div className="mb-4">
+          <button
+            onClick={() => setShowBalancesModal(true)}
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center group"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+              <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+            </svg>
+            Ver balances por persona ({clientBalances.length})
+          </button>
         </div>
       )}
 
-      {/* Modal de resumen */}
+      {/* Modal de balances por persona */}
+      {showBalancesModal && (
+  <div className="fixed inset-0 z-50 overflow-y-auto">
+    {/* Overlay */}
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+      onClick={() => setShowBalancesModal(false)}
+    ></div>
+    
+    {/* Modal content - Cambiado para mejor centrado */}
+    <div className="flex min-h-full items-center justify-center p-4 text-center">
+      <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all w-full max-w-md">
+        
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white">Balances por persona</h3>
+              <p className="text-indigo-100 text-sm">{clientBalances.length} personas</p>
+            </div>
+            <button
+              onClick={() => setShowBalancesModal(false)}
+              className="text-white hover:text-indigo-200 p-1 rounded-full hover:bg-white/20 transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Contenido desplazable - Altura ajustada */}
+        <div className="px-6 py-4 max-h-[calc(80vh-120px)] overflow-y-auto">
+          <div className="space-y-3">
+            {clientBalances.map((cb, index) => (
+              <div 
+                key={index} 
+                className={`flex justify-between items-center p-4 rounded-xl border ${
+                  cb.balance > 0 
+                    ? 'bg-emerald-50 border-emerald-200' 
+                    : 'bg-rose-50 border-rose-200'
+                }`}
+              >
+                <div className="flex-1">
+                  <span className="font-semibold text-gray-800 block">{cb.name}</span>
+                  <span className={`text-sm font-medium ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {cb.balance > 0 ? 'Te debe' : 'Le debes'}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className={`text-xl font-bold ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {cb.balance > 0 ? '+' : ''}{formatCurrency(Math.abs(cb.balance))}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Resumen al final */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium">Total a favor</p>
+                <p className="text-lg font-bold text-blue-700">
+                  {formatCurrency(clientBalances.reduce((sum, cb) => cb.balance > 0 ? sum + cb.balance : sum, 0))}
+                </p>
+              </div>
+              <div className="bg-slate-50 p-3 rounded-lg">
+                <p className="text-sm text-slate-600 font-medium">Total a deber</p>
+                <p className="text-lg font-bold text-slate-700">
+                  {formatCurrency(Math.abs(clientBalances.reduce((sum, cb) => cb.balance < 0 ? sum + cb.balance : sum, 0)))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botón de cerrar */}
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          <button
+            onClick={() => setShowBalancesModal(false)}
+            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+      {/* Modal de resumen original */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="modal-professional p-8 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">

@@ -28,3 +28,4 @@ export const formatRelativeDate = (date: Date): string => {
 export const formatVoiceResponse = (text: string): string => {
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
