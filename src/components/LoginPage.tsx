@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Mail, Lock, Mic, UserPlus, Download,X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown } from 'lucide-react';
 import { userService } from '../services/userService';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { toast } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface LoginPageProps {
   onLogin: () => void;
@@ -15,7 +15,48 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const { isInstallable, installPWA } = usePWAInstall();
-  const [showInstallBanner, setShowInstallBanner] = useState(true); // Estado para mostrar/ocultar banner
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [showAdNotice, setShowAdNotice] = useState(false); // Empieza en false
+  const [showScrollHint, setShowScrollHint] = useState(true);
+  const modalContentRef = useRef<HTMLDivElement>(null);
+
+  // Mostrar modal de anuncios si es la primera vez
+  useEffect(() => {
+    const hasSeenAdNotice = localStorage.getItem('walletVoice_adNoticeSeen');
+    
+    if (!hasSeenAdNotice) {
+      // Mostrar después de un breve delay, sobre el login
+      setTimeout(() => {
+        setShowAdNotice(true);
+      }, 800);
+    }
+  }, []);
+
+  // Ocultar hint de scroll
+  useEffect(() => {
+    if (showAdNotice && showScrollHint) {
+      const timer = setTimeout(() => {
+        setShowScrollHint(false);
+      }, 3000);
+
+      const contentElement = modalContentRef.current;
+      const handleScroll = () => {
+        if (contentElement && contentElement.scrollTop > 50) {
+          setShowScrollHint(false);
+        }
+      };
+
+      if (contentElement) {
+        contentElement.addEventListener('scroll', handleScroll);
+        return () => {
+          clearTimeout(timer);
+          contentElement.removeEventListener('scroll', handleScroll);
+        };
+      }
+
+      return () => clearTimeout(timer);
+    }
+  }, [showAdNotice, showScrollHint]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,19 +73,65 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
     }
   };
 
-  // Función para cerrar el banner
   const closeInstallBanner = () => {
     setShowInstallBanner(false);
   };
 
-  // Función para instalar y luego cerrar
   const handleInstallPWA = async () => {
     await installPWA();
     closeInstallBanner();
   };
 
+  const handleAcceptAds = () => {
+    localStorage.setItem('walletVoice_adNoticeSeen', 'true');
+    localStorage.setItem('walletVoice_adNoticeSupported', 'true');
+    setShowAdNotice(false);
+    
+    toast.success('¡Gracias por apoyar Wallet Voice! 🎉', {
+      duration: 4000,
+      icon: '❤️',
+      style: {
+        background: '#10B981',
+        color: '#fff',
+      },
+    });
+  };
+
+  const handleContinueWithoutSupport = () => {
+    localStorage.setItem('walletVoice_adNoticeSeen', 'true');
+    localStorage.setItem('walletVoice_adNoticeSupported', 'false');
+    setShowAdNotice(false);
+    
+    toast('Puedes cambiar tu decisión en cualquier momento en Configuración', {
+      duration: 3000,
+      icon: 'ℹ️',
+      style: {
+        background: '#3B82F6',
+        color: '#fff',
+      },
+    });
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#282580] to-[#3b2a91] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#282580] to-[#3b2a91] flex items-center justify-center p-4 relative">
+      <Toaster 
+        position="top-center"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#10B981',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+
       {/* Install Banner */}
       {isInstallable && showInstallBanner && (
         <div className="fixed top-4 left-4 right-4 bg-white rounded-xl p-4 shadow-lg border border-blue-200 z-50 animate-fade-in">
@@ -65,7 +152,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               Instalar
             </button>
             <button 
-              onClick={closeInstallBanner} // ← AQUÍ ESTÁ CORREGIDO
+              onClick={closeInstallBanner}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors ml-2"
               aria-label="Cerrar"
             >
@@ -75,7 +162,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in mt-20">
+      {/* Login Form - SIEMPRE visible */}
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
           <div className="w-28 h-28 mx-auto mb-4 shadow-lg rounded-xl overflow-hidden bg-white">
@@ -84,7 +172,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               alt="Wallet Voice Logo"
               className="w-full h-full object-contain"
               onError={(e) => {
-                // Fallback si la imagen no carga
                 e.currentTarget.style.display = 'none';
                 e.currentTarget.parentElement!.innerHTML = '<div class="w-28 h-28 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto shadow-lg"><svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path></svg></div>';
               }}
@@ -175,7 +262,112 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
             ¿No tienes cuenta? Regístrate
           </button>
         </div>
+
+        {/* Información sobre anuncios */}
+        <div className="mt-6 pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-500 text-center">
+            <Heart className="w-3 h-3 inline mr-1 text-red-500" />
+            Wallet Voice es gratuita gracias a los anuncios. 
+            <button 
+              onClick={() => setShowAdNotice(true)}
+              className="text-blue-600 hover:text-blue-800 ml-1 font-medium"
+            >
+              Más información
+            </button>
+          </p>
+        </div>
       </div>
+
+      {/* Modal de Anuncios - Se muestra sobre el login */}
+      {showAdNotice && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-blue-300 flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-5 rounded-t-2xl text-center flex-shrink-0">
+              <div className="w-14 h-14 mx-auto mb-3 bg-white rounded-xl p-3 shadow-lg">
+                <AlertCircle className="w-8 h-8 mx-auto text-blue-600" />
+              </div>
+              <h2 className="text-xl font-bold text-white">Información sobre anuncios</h2>
+            </div>
+
+            {/* Contenido con scroll */}
+            <div 
+              ref={modalContentRef}
+              className="flex-1 overflow-y-auto p-5"
+              style={{ maxHeight: 'calc(85vh - 180px)' }}
+            >
+              {showScrollHint && (
+                <div className="text-center mb-3 animate-bounce">
+                  <div className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
+                    <ChevronDown className="w-3 h-3" />
+                    <span>Desliza para ver más</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="text-center">
+                  <p className="text-gray-700 mb-4">
+                    Para mantener <span className="font-bold text-blue-600">Wallet Voice completamente gratuita</span>, mostramos anuncios no intrusivos.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Sin costos ocultos</p>
+                      <p className="text-sm text-gray-600">Nunca pagarás por funciones básicas</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Anuncios discretos</p>
+                      <p className="text-sm text-gray-600">Solo banners que no interrumpen tu experiencia</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-gray-900">Apoyo voluntario</p>
+                      <p className="text-sm text-gray-600">Puedes ver anuncios adicionales para apoyarnos</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4 mt-4">
+                  <p className="text-center text-blue-800 text-sm">
+                    <Heart className="w-4 h-4 inline mr-1 text-red-500" />
+                    ¡Tu apoyo nos ayuda a seguir mejorando!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl flex-shrink-0">
+              <div className="space-y-3">
+                <button
+                  onClick={handleAcceptAds}
+                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
+                >
+                  ¡Entiendo y quiero apoyar!
+                </button>
+
+                <button
+                  onClick={handleContinueWithoutSupport}
+                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Entiendo, continuar sin apoyar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
