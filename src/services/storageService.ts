@@ -198,6 +198,118 @@ export const storageService = {
     return newPayment;
   },
 
+  // Agrega esto en la sección de PAGOS (después de la función addPayment):
+
+// ===== HISTORIAL DE PAGOS =====
+
+// ✅ 1. Obtener historial completo de pagos por persona
+getPaymentHistory(personName: string): any[] {
+  const payments = this.getPayments();
+  const debts = this.getDebts();
+  
+  // Normalizar nombre para búsqueda
+  const normalizedSearchName = normalizeName(personName);
+  
+  // Filtrar pagos de esta persona
+  const personPayments = payments.filter(payment => {
+    const debt = debts.find(d => d.id === payment.debtId);
+    if (!debt) return false;
+    
+    const normalizedDebtName = normalizeName(debt.person);
+    return normalizedDebtName.includes(normalizedSearchName) || 
+           normalizedSearchName.includes(normalizedDebtName);
+  });
+
+  // Ordenar por fecha (más reciente primero)
+  return personPayments
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .map(payment => {
+      const debt = debts.find(d => d.id === payment.debtId);
+      return {
+        ...payment,
+        person: debt?.person || 'Desconocido',
+        type: debt?.type || 'unknown'
+      };
+    });
+},
+
+// ✅ 2. Obtener el ÚLTIMO pago de una persona
+getLastPayment(personName: string): any | null {
+  const paymentHistory = this.getPaymentHistory(personName);
+  return paymentHistory.length > 0 ? paymentHistory[0] : null;
+},
+
+// ✅ 3. Calcular días desde el último pago
+getDaysSinceLastPayment(personName: string): number | null {
+  const lastPayment = this.getLastPayment(personName);
+  if (!lastPayment) return null;
+  
+  const lastDate = new Date(lastPayment.date);
+  const today = new Date();
+  const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays;
+},
+
+// ✅ 4. Obtener deudas vencidas (no pagadas hace X días)
+getOverdueDebts(daysThreshold: number = 30): any[] {
+  const debts = this.getDebts();
+  const today = new Date();
+  
+  return debts
+    .filter(debt => {
+      // Solo deudas pendientes
+      if (debt.status === 'paid') return false;
+      
+      // Calcular días desde creación o actualización
+      const lastDate = debt.updatedAt || debt.createdAt;
+      const daysSince = Math.floor((today.getTime() - new Date(lastDate).getTime()) / (1000 * 60 * 60 * 24));
+      
+      return daysSince > daysThreshold;
+    })
+    .map(debt => ({
+      ...debt,
+      daysOverdue: Math.floor((today.getTime() - new Date(debt.updatedAt || debt.createdAt).getTime()) / (1000 * 60 * 60 * 24))
+    }));
+},
+
+// ✅ 5. Obtener estadísticas de pagos por persona
+getPaymentStats(personName: string): any {
+  const paymentHistory = this.getPaymentHistory(personName);
+  
+  if (paymentHistory.length === 0) {
+    return {
+      person: personName,
+      totalPayments: 0,
+      totalAmount: 0,
+      lastPayment: null,
+      daysSinceLastPayment: null,
+      averagePayment: 0
+    };
+  }
+  
+  const totalAmount = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
+  const lastPayment = paymentHistory[0];
+  const daysSinceLast = this.getDaysSinceLastPayment(personName);
+  
+  return {
+    person: personName,
+    totalPayments: paymentHistory.length,
+    totalAmount,
+    lastPayment: {
+      amount: lastPayment.amount,
+      date: lastPayment.date,
+      description: lastPayment.note || 'Sin descripción'
+    },
+    daysSinceLastPayment: daysSinceLast,
+    averagePayment: totalAmount / paymentHistory.length,
+    recentPayments: paymentHistory.slice(0, 5) // Últimos 5 pagos
+  };
+},
+
+  
+
   // ===== CLIENTES =====
   getClients(): Client[] {
     try {

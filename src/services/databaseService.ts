@@ -637,6 +637,8 @@ class WalletVoiceDatabase extends Dexie {
   }
 }
 
+
+
 // ============ INSTANCIA GLOBAL ============
 export const db = new WalletVoiceDatabase();
 
@@ -737,6 +739,159 @@ export const storageService = {
       recentClients: clients.slice(-5),
     };
   },
+
+  // ============ MÉTODOS PARA HISTORIAL DE PAGOS ============
+
+getPaymentHistory: async (personName: string): Promise<any[]> => {
+  try {
+    const payments = await db.getPayments();
+    const debts = await db.getDebts();
+    
+    // Normalizar nombre para búsqueda
+    const normalizedSearchName = personName
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .trim();
+    
+    // Filtrar pagos de esta persona
+    const personPayments = payments.filter(payment => {
+      const debt = debts.find(d => d.id === payment.debtId);
+      if (!debt) return false;
+      
+      const normalizedDebtName = debt.person
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+      
+      return normalizedDebtName.includes(normalizedSearchName) || 
+             normalizedSearchName.includes(normalizedDebtName);
+    });
+
+    // Ordenar por fecha (más reciente primero)
+    return personPayments
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map(payment => {
+        const debt = debts.find(d => d.id === payment.debtId);
+        return {
+          ...payment,
+          person: debt?.person || 'Desconocido',
+          type: debt?.type || 'unknown'
+        };
+      });
+  } catch (error) {
+    console.error('Error en getPaymentHistory:', error);
+    return [];
+  }
+},
+
+getLastPayment: async (personName: string): Promise<any | null> => {
+  try {
+    const paymentHistory = await storageService.getPaymentHistory(personName);
+    return paymentHistory.length > 0 ? paymentHistory[0] : null;
+  } catch (error) {
+    console.error('Error en getLastPayment:', error);
+    return null;
+  }
+},
+
+getDaysSinceLastPayment: async (personName: string): Promise<number | null> => {
+  try {
+    const lastPayment = await storageService.getLastPayment(personName);
+    if (!lastPayment) return null;
+    
+    const lastDate = new Date(lastPayment.date);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays;
+  } catch (error) {
+    console.error('Error en getDaysSinceLastPayment:', error);
+    return null;
+  }
+},
+
+getOverdueDebts: async (daysThreshold: number = 30): Promise<any[]> => {
+  try {
+    const debts = await db.getDebts();
+    const today = new Date();
+    
+    const overdueDebts = debts
+      .filter(debt => {
+        // Solo deudas pendientes
+        if (debt.status === 'paid') return false;
+        
+        // Calcular días desde la fecha de creación
+        const debtDate = new Date(debt.date);
+        const daysSince = Math.floor((today.getTime() - debtDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return daysSince > daysThreshold;
+      })
+      .map(debt => {
+        const debtDate = new Date(debt.date);
+        const daysSince = Math.floor((today.getTime() - debtDate.getTime()) / (1000 * 60 * 60 * 24));
+        
+        return {
+          ...debt,
+          daysOverdue: daysSince - daysThreshold
+        };
+      });
+
+    return overdueDebts;
+  } catch (error) {
+    console.error('Error en getOverdueDebts:', error);
+    return [];
+  }
+},
+
+getPaymentStats: async (personName: string): Promise<any> => {
+  try {
+    const paymentHistory = await storageService.getPaymentHistory(personName);
+    
+    if (paymentHistory.length === 0) {
+      return {
+        person: personName,
+        totalPayments: 0,
+        totalAmount: 0,
+        lastPayment: null,
+        daysSinceLastPayment: null,
+        averagePayment: 0,
+        recentPayments: []
+      };
+    }
+    
+    const totalAmount = paymentHistory.reduce((sum, payment) => sum + payment.amount, 0);
+    const lastPayment = paymentHistory[0];
+    const daysSinceLast = await storageService.getDaysSinceLastPayment(personName);
+    
+    return {
+      person: personName,
+      totalPayments: paymentHistory.length,
+      totalAmount,
+      lastPayment: {
+        amount: lastPayment.amount,
+        date: lastPayment.date,
+        description: lastPayment.note || 'Sin descripción'
+      },
+      daysSinceLastPayment: daysSinceLast,
+      averagePayment: totalAmount / paymentHistory.length,
+      recentPayments: paymentHistory.slice(0, 5) // Últimos 5 pagos
+    };
+  } catch (error) {
+    console.error('Error en getPaymentStats:', error);
+    return {
+      person: personName,
+      totalPayments: 0,
+      totalAmount: 0,
+      lastPayment: null,
+      daysSinceLastPayment: null,
+      averagePayment: 0,
+      recentPayments: []
+    };
+  }
+},
   
   // Reset
   resetDebts: async () => {

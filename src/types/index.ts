@@ -14,7 +14,16 @@ export interface Debt {
 }
 
 export interface NLPResult {
-  intent: 'add_debt' | 'query_debt' | 'show_summary' | 'add_payment' | 'unknown';
+  intent: 
+    | 'add_debt' 
+    | 'query_debt' 
+    | 'show_summary' 
+    | 'add_payment' 
+    | 'create_client'              // ✅ Asegúrate que existe
+    | 'query_payment_history'      // ✅ NUEVO
+    | 'query_last_payment'         // ✅ NUEVO
+    | 'query_overdue_debts'        // ✅ NUEVO
+    | 'unknown';
   entities: {
     person?: string;
     amount?: number;

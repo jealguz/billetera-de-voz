@@ -65,7 +65,7 @@ class EnhancedVoiceService {
   private synth = window.speechSynthesis;
   private currentSettings: VoiceSettings;
   private voicesLoaded: boolean = false;
-  
+
   private voicePersonalities: VoicePersonality[] = [
     {
       id: 'asistente-formal',
@@ -116,7 +116,7 @@ class EnhancedVoiceService {
   }
 
   // ============ INICIALIZACIÓN ============
-  
+
   private initializeVoiceSystem(): void {
     this.loadVoices();
     this.synth.onvoiceschanged = () => {
@@ -148,7 +148,7 @@ class EnhancedVoiceService {
   }
 
   // ============ GESTIÓN DE CONFIGURACIÓN ============
-  
+
   private loadVoiceSettings(): VoiceSettings {
     const defaultSettings: VoiceSettings = {
       voiceURI: '',
@@ -189,24 +189,24 @@ class EnhancedVoiceService {
   }
 
   // ============ SISTEMA DE VARIEDAD DE VOCES ============
-  
+
   public getAllVoicesWithInfo(includeVirtual: boolean = true): VoiceInfo[] {
     const realVoices = this.getAvailableVoices();
     const realVoicesInfo = realVoices.map(voice => this.createVoiceInfo(voice));
-    
+
     if (!includeVirtual) {
       return realVoicesInfo.sort(this.sortVoices);
     }
-    
+
     const virtualVoices = this.createVirtualVoices(realVoicesInfo);
     return [...virtualVoices, ...realVoicesInfo].sort(this.sortVoices);
   }
-  
+
   private createVoiceInfo(voice: SpeechSynthesisVoice): VoiceInfo {
     const rating = this.rateVoice(voice);
     const gender = this.detectVoiceGender(voice.name);
     const description = this.getVoiceDescription(voice);
-    
+
     return {
       uri: voice.voiceURI,
       name: voice.name,
@@ -222,10 +222,10 @@ class EnhancedVoiceService {
       description
     };
   }
-  
+
   private createVirtualVoices(realVoices: VoiceInfo[]): VoiceInfo[] {
     const virtualVoices: VoiceInfo[] = [];
-    
+
     realVoices.forEach(realVoice => {
       this.voicePersonalities.forEach(personality => {
         if (realVoice.isSpanish) {
@@ -250,10 +250,10 @@ class EnhancedVoiceService {
         }
       });
     });
-    
+
     return virtualVoices;
   }
-  
+
   private sortVoices(a: VoiceInfo, b: VoiceInfo): number {
     if (a.isSpanish && !b.isSpanish) return -1;
     if (!a.isSpanish && b.isSpanish) return 1;
@@ -307,29 +307,29 @@ class EnhancedVoiceService {
   }
 
   // ============ MÉTODOS PARA PERSONALIDADES ============
-  
+
   public getAllPersonalities(): VoicePersonality[] {
     return this.voicePersonalities;
   }
-  
+
   public getPersonality(personalityId: string): VoicePersonality | undefined {
     return this.voicePersonalities.find(p => p.id === personalityId);
   }
-  
+
   public setVoicePersonality(personalityId: string): boolean {
     const personality = this.getPersonality(personalityId);
     if (!personality) return false;
-    
+
     this.updateVoiceSettings({
       voicePersonality: personalityId,
       rate: personality.settings.rate,
       pitch: personality.settings.pitch,
       volume: personality.settings.volume
     });
-    
+
     return true;
   }
-  
+
   public getCurrentPersonality(): VoicePersonality | undefined {
     if (!this.currentSettings.voicePersonality) return undefined;
     return this.getPersonality(this.currentSettings.voicePersonality);
@@ -342,13 +342,13 @@ class EnhancedVoiceService {
   public getVoicesByGender(gender: 'male' | 'female'): VoiceInfo[] {
     return this.getAllVoicesWithInfo().filter(v => v.gender === gender);
   }
-  
+
   public getVoicesByPersonality(personalityId: string): VoiceInfo[] {
     return this.getAllVoicesWithInfo().filter(v => v.personality === personalityId);
   }
 
   // ============ CONFIGURACIÓN DE VOZ ============
-  
+
   public getVoiceSettings(): VoiceSettings {
     return { ...this.currentSettings };
   }
@@ -359,7 +359,7 @@ class EnhancedVoiceService {
     this.currentSettings.rate = Math.max(0.5, Math.min(2.0, this.currentSettings.rate));
     this.currentSettings.pitch = Math.max(0.5, Math.min(2.0, this.currentSettings.pitch));
     this.currentSettings.volume = Math.max(0.1, Math.min(1.0, this.currentSettings.volume));
-    
+
     if (JSON.stringify(oldSettings) !== JSON.stringify(this.currentSettings)) {
       this.saveVoiceSettings();
     }
@@ -368,9 +368,9 @@ class EnhancedVoiceService {
   public setVoice(voiceURI: string): boolean {
     const voices = this.getAllVoicesWithInfo();
     const selectedVoice = voices.find(v => v.uri === voiceURI);
-    
+
     if (!selectedVoice) return false;
-    
+
     if (selectedVoice.isVirtual && selectedVoice.baseVoiceURI) {
       const baseVoice = this.getAvailableVoices().find(v => v.voiceURI === selectedVoice.baseVoiceURI);
       if (baseVoice) {
@@ -394,7 +394,7 @@ class EnhancedVoiceService {
         });
       }
     }
-    
+
     return true;
   }
 
@@ -408,7 +408,7 @@ class EnhancedVoiceService {
   }
 
   // ============ SÍNTESIS DE VOZ MEJORADA ============
-  
+
   speak(text: string, options?: Partial<VoiceSettings>): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!('speechSynthesis' in window)) {
@@ -428,17 +428,17 @@ class EnhancedVoiceService {
           utterance.rate = settings.rate;
           utterance.pitch = settings.pitch;
           utterance.volume = settings.volume;
-          
+
           utterance.onend = () => {
             resolve();
           };
-          
+
           utterance.onerror = (event) => {
             reject(new Error(`Error de voz: ${event.error}`));
           };
-          
+
           this.synth.speak(utterance);
-          
+
         } catch (error) {
           reject(error);
         }
@@ -448,7 +448,7 @@ class EnhancedVoiceService {
 
   private configureVoice(utterance: SpeechSynthesisUtterance, settings: VoiceSettings): void {
     const voices = this.getAvailableVoices();
-    
+
     if (settings.voiceURI) {
       const selectedVoice = voices.find(v => v.voiceURI === settings.voiceURI);
       if (selectedVoice) {
@@ -457,7 +457,7 @@ class EnhancedVoiceService {
         return;
       }
     }
-    
+
     if (settings.voiceName) {
       const selectedVoice = voices.find(v => v.name === settings.voiceName);
       if (selectedVoice) {
@@ -466,7 +466,7 @@ class EnhancedVoiceService {
         return;
       }
     }
-    
+
     const spanishVoices = voices.filter(v => v.lang.startsWith('es'));
     if (spanishVoices.length > 0) {
       const systemVoice = spanishVoices.find(v => v.localService) || spanishVoices[0];
@@ -474,13 +474,13 @@ class EnhancedVoiceService {
       utterance.lang = systemVoice.lang;
       return;
     }
-    
+
     utterance.lang = settings.language;
   }
 
   public previewVoice(voiceInfo: VoiceInfo): Promise<void> {
     const previewText = "Hola, soy tu asistente de voz. Esta es una muestra de cómo sueno. ¿Te gusta mi voz?";
-    
+
     if (voiceInfo.isVirtual && voiceInfo.personality) {
       const personality = this.getPersonality(voiceInfo.personality);
       if (personality && voiceInfo.baseVoiceURI) {
@@ -493,7 +493,7 @@ class EnhancedVoiceService {
         });
       }
     }
-    
+
     return this.speak(previewText, {
       voiceURI: voiceInfo.uri,
       voiceName: voiceInfo.name,
@@ -503,7 +503,7 @@ class EnhancedVoiceService {
   }
 
   // ============ RECONOCIMIENTO DE VOZ ============
-  
+
   startListening(): Promise<string> {
     return new Promise((resolve, reject) => {
       if (!this.isSupported) {
@@ -599,54 +599,54 @@ class EnhancedVoiceService {
   }
 
   // ============ COMANDOS DE VOZ ESPECIALES ============
-  
+
   private processVoiceCommands(text: string): VoiceResponse | null {
     const lowerText = text.toLowerCase();
-    
+
     if (lowerText.includes('cambia la voz') || lowerText.includes('cambiar voz')) {
       const voices = this.getSpanishVoices();
       const count = voices.length;
       const virtualCount = voices.filter(v => v.isVirtual).length;
-      
+
       return {
         success: true,
         response: `Tengo ${count} voces disponibles (${virtualCount} variantes personalizadas). ¿Quieres que pruebe algunas o prefieres elegir desde la configuración?`,
-        data: { 
-          action: 'change_voice', 
+        data: {
+          action: 'change_voice',
           count,
           virtualCount,
-          personalities: this.voicePersonalities.length 
+          personalities: this.voicePersonalities.length
         }
       };
     }
-    
+
     if (lowerText.includes('voces disponibles') || lowerText.includes('qué voces tengo')) {
       const voices = this.getSpanishVoices();
       const realVoices = voices.filter(v => !v.isVirtual);
       const virtualVoices = voices.filter(v => v.isVirtual);
-      
+
       if (voices.length === 0) {
         return {
           success: false,
           response: 'No encontré voces en español disponibles. Puedes agregar voces desde la configuración de tu sistema.'
         };
       }
-      
+
       const personalitiesList = this.voicePersonalities
         .map(p => `${p.icon} ${p.name}`)
         .join(', ');
-      
+
       return {
         success: true,
         response: `Tengo ${realVoices.length} voces base y ${virtualVoices.length} variantes personalizadas. Estilos disponibles: ${personalitiesList}. Para cambiarla, di "configuración de voz".`,
-        data: { 
+        data: {
           realCount: realVoices.length,
           virtualCount: virtualVoices.length,
           personalities: this.voicePersonalities.map(p => p.name)
         }
       };
     }
-    
+
     if (lowerText.includes('configuración de voz') || lowerText.includes('ajustes de voz')) {
       return {
         success: true,
@@ -654,7 +654,7 @@ class EnhancedVoiceService {
         data: { action: 'open_voice_settings' }
       };
     }
-    
+
     if (lowerText.includes('más rápido') || lowerText.includes('habla más rápido')) {
       const newRate = Math.min(this.currentSettings.rate + 0.2, 2.0);
       this.updateVoiceSettings({ rate: newRate });
@@ -664,7 +664,7 @@ class EnhancedVoiceService {
         data: { newRate }
       };
     }
-    
+
     if (lowerText.includes('más lento') || lowerText.includes('habla más lento')) {
       const newRate = Math.max(this.currentSettings.rate - 0.2, 0.5);
       this.updateVoiceSettings({ rate: newRate });
@@ -674,7 +674,7 @@ class EnhancedVoiceService {
         data: { newRate }
       };
     }
-    
+
     if (lowerText.includes('voz femenina') || lowerText.includes('voz de mujer')) {
       const femaleVoices = this.getVoicesByGender('female');
       if (femaleVoices.length > 0) {
@@ -686,7 +686,7 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     if (lowerText.includes('voz masculina') || lowerText.includes('voz de hombre')) {
       const maleVoices = this.getVoicesByGender('male');
       if (maleVoices.length > 0) {
@@ -698,7 +698,7 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     if (lowerText.includes('voz formal') || lowerText.includes('estilo formal')) {
       if (this.setVoicePersonality('asistente-formal')) {
         return {
@@ -708,7 +708,7 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     if (lowerText.includes('voz amigable') || lowerText.includes('estilo amigable')) {
       if (this.setVoicePersonality('amigable')) {
         return {
@@ -718,7 +718,7 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     if (lowerText.includes('voz energética') || lowerText.includes('estilo energético')) {
       if (this.setVoicePersonality('energico')) {
         return {
@@ -728,7 +728,7 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     if (lowerText.includes('voz calmada') || lowerText.includes('estilo calmado')) {
       if (this.setVoicePersonality('calmado')) {
         return {
@@ -738,12 +738,12 @@ class EnhancedVoiceService {
         };
       }
     }
-    
+
     return null;
   }
 
   // ============ PROCESAMIENTO DE COMANDOS NLP ============
-  
+
   async processNaturalCommand(text: string): Promise<VoiceResponse> {
     console.log('📝 Procesando comando:', text);
 
@@ -756,10 +756,10 @@ class EnhancedVoiceService {
       const parsed = nlpService.parseCommand(text);
       console.log('🔍 Comando parseado:', parsed);
       console.log('🔍 Intent:', parsed.intent, 'Person:', parsed.entities.person, 'Amount:', parsed.entities.amount);
-      
+
       if ((parsed.intent === 'add_debt' || parsed.intent === 'add_payment') && parsed.entities.person && parsed.entities.amount) {
         console.log('🔍 Verificando confirmación para:', parsed.entities.person, 'monto:', parsed.entities.amount);
-        
+
         // CAMBIADO: Ahora es async/await
         const clientExists = await this.checkClientExists(parsed.entities.person);
         console.log('🔍 Cliente existe:', clientExists);
@@ -791,10 +791,10 @@ class EnhancedVoiceService {
           console.log('✅ Cliente existe, procesando deuda normalmente');
         }
       }
-      
+
       let data: any = null;
       let success = false;
-      
+
       switch (parsed.intent) {
         case 'add_debt':
           success = await this.handleAddDebt(parsed);
@@ -803,7 +803,7 @@ class EnhancedVoiceService {
             data = await storageService.getSummary();
           }
           break;
-          
+
         case 'add_payment':
           success = await this.handleAddPayment(parsed);
           if (success && parsed.entities.person) {
@@ -811,12 +811,12 @@ class EnhancedVoiceService {
             data = await storageService.getClientSummary(parsed.entities.person);
           }
           break;
-          
+
         case 'query_debt':
           data = await this.handleQueryDebt(parsed);
           success = true;
           break;
-          
+
         case 'show_summary':
           // CAMBIADO: Ahora es async/await
           const [personal, business] = await Promise.all([
@@ -826,26 +826,43 @@ class EnhancedVoiceService {
           data = { personal, business };
           success = true;
           break;
-          
+
+        case 'query_payment_history':
+          data = await this.handlePaymentHistoryQuery(parsed);
+          success = true;
+          break;
+
+        case 'query_last_payment':
+          data = await this.handleLastPaymentQuery(parsed);
+          success = true;
+          break;
+
+        case 'query_overdue_debts':
+          data = await this.handleOverdueDebtsQuery(parsed);
+          success = true;
+          break;
+
         case 'create_client':
           success = await this.handleCreateClient(parsed);
           break;
-          
+
+
+
         default:
           return await this.fallbackToBasicSystem(text); // CAMBIADO: Ahora es async
       }
-      
+
       const response = nlpService.generateResponse(parsed, data);
-      
+
       console.log('✅ Resultado:', { success, response });
-      
+
       return {
         success,
         response,
         data,
         parsed,
       };
-      
+
     } catch (error: any) {
       console.error('❌ Error procesando comando:', error);
       return {
@@ -854,57 +871,57 @@ class EnhancedVoiceService {
       };
     }
   }
-  
+
   // ============ MANEJADORES DE ACCIONES (CORREGIDOS CON ASYNC/AWAIT) ============
-  
-private async checkClientExists(personName: string): Promise<boolean> {
-  if (!personName) {
-    console.log('🔴 DEBUG: personName es null o undefined');
-    return false;
+
+  private async checkClientExists(personName: string): Promise<boolean> {
+    if (!personName) {
+      console.log('🔴 DEBUG: personName es null o undefined');
+      return false;
+    }
+
+    try {
+      console.log('🔍 DEBUG checkClientExists: Buscando cliente:', personName);
+
+      // Obtener clientes de forma asíncrona
+      const clients = await storageService.getClients();
+      console.log('🔍 DEBUG: Clientes obtenidos:', clients.length, 'clientes');
+
+      // Ver si existe
+      const normalizedPersonName = personName.toLowerCase().trim();
+      console.log('🔍 DEBUG: Nombre normalizado:', normalizedPersonName);
+
+      // Buscar cliente exacto
+      const exactMatch = clients.find(client =>
+        client.name.toLowerCase().trim() === normalizedPersonName
+      );
+
+      if (exactMatch) {
+        console.log('✅ DEBUG: Cliente encontrado (exact match):', exactMatch.name);
+        return true;
+      }
+
+      // Buscar coincidencias parciales
+      const partialMatch = clients.find(client => {
+        const clientName = client.name.toLowerCase().trim();
+        return clientName.includes(normalizedPersonName) ||
+          normalizedPersonName.includes(clientName);
+      });
+
+      if (partialMatch) {
+        console.log('✅ DEBUG: Cliente encontrado (partial match):', partialMatch.name);
+        return true;
+      }
+
+      console.log('❌ DEBUG: Cliente NO encontrado');
+      return false;
+
+    } catch (error) {
+      console.error('🔴 ERROR en checkClientExists:', error);
+      return false;
+    }
   }
 
-  try {
-    console.log('🔍 DEBUG checkClientExists: Buscando cliente:', personName);
-    
-    // Obtener clientes de forma asíncrona
-    const clients = await storageService.getClients();
-    console.log('🔍 DEBUG: Clientes obtenidos:', clients.length, 'clientes');
-    
-    // Ver si existe
-    const normalizedPersonName = personName.toLowerCase().trim();
-    console.log('🔍 DEBUG: Nombre normalizado:', normalizedPersonName);
-    
-    // Buscar cliente exacto
-    const exactMatch = clients.find(client => 
-      client.name.toLowerCase().trim() === normalizedPersonName
-    );
-    
-    if (exactMatch) {
-      console.log('✅ DEBUG: Cliente encontrado (exact match):', exactMatch.name);
-      return true;
-    }
-    
-    // Buscar coincidencias parciales
-    const partialMatch = clients.find(client => {
-      const clientName = client.name.toLowerCase().trim();
-      return clientName.includes(normalizedPersonName) ||
-             normalizedPersonName.includes(clientName);
-    });
-    
-    if (partialMatch) {
-      console.log('✅ DEBUG: Cliente encontrado (partial match):', partialMatch.name);
-      return true;
-    }
-    
-    console.log('❌ DEBUG: Cliente NO encontrado');
-    return false;
-    
-  } catch (error) {
-    console.error('🔴 ERROR en checkClientExists:', error);
-    return false;
-  }
-}
-  
   private async handleAddDebt(parsed: ParsedCommand): Promise<boolean> {
     const { person, amount, description } = parsed.entities;
 
@@ -914,8 +931,8 @@ private async checkClientExists(personName: string): Promise<boolean> {
 
     const rawText = parsed.rawText.toLowerCase();
     const isOwing = rawText.includes('yo debo') ||
-                   rawText.includes('le debo') ||
-                   rawText.includes('debo a');
+      rawText.includes('le debo') ||
+      rawText.includes('debo a');
 
     console.log('💰 Determinando tipo de deuda:', isOwing ? 'owing (TÚ debes)' : 'owed (te deben)');
 
@@ -930,14 +947,14 @@ private async checkClientExists(personName: string): Promise<boolean> {
         status: 'pending',
         paidAmount: 0,
       });
-      
+
       return true;
     } catch (error: any) {
       console.error('Error agregando deuda:', error);
       throw error;
     }
   }
-  
+
   private async handleAddPayment(parsed: ParsedCommand): Promise<boolean> {
     const { person, amount } = parsed.entities;
 
@@ -946,9 +963,9 @@ private async checkClientExists(personName: string): Promise<boolean> {
     }
 
     const isMyPayment = parsed.rawText.toLowerCase().includes('le abono') ||
-                        parsed.rawText.toLowerCase().includes('abono a') ||
-                        parsed.rawText.toLowerCase().includes('le pagué') ||
-                        parsed.rawText.toLowerCase().includes('pagué a');
+      parsed.rawText.toLowerCase().includes('abono a') ||
+      parsed.rawText.toLowerCase().includes('le pagué') ||
+      parsed.rawText.toLowerCase().includes('pagué a');
 
     // CAMBIADO: Ahora es async/await
     const clients = await storageService.getClients();
@@ -973,14 +990,14 @@ private async checkClientExists(personName: string): Promise<boolean> {
       const tipoTexto = isMyPayment ? 'deudas tuyas con' : 'deudas de';
       throw new Error(`${person} no tiene ${tipoTexto} pendientes`);
     }
-    
+
     const debt = clientDebts[0];
-    
+
     try {
       // CAMBIADO: Ahora es async/await
       await storageService.addPayment(
-        debt.id, 
-        amount, 
+        debt.id,
+        amount,
         `Pago de ${person} registrado por voz`
       );
       return true;
@@ -989,7 +1006,7 @@ private async checkClientExists(personName: string): Promise<boolean> {
       throw error;
     }
   }
-  
+
   private async handleQueryDebt(parsed: ParsedCommand): Promise<any> {
     const { person } = parsed.entities;
 
@@ -1008,37 +1025,37 @@ private async checkClientExists(personName: string): Promise<boolean> {
     if (!person) {
       throw new Error('¿De quién quieres consultar la deuda?');
     }
-    
+
     // CAMBIADO: Ahora es async/await
     const clients = await storageService.getClients();
-    const client = clients.find(c => 
+    const client = clients.find(c =>
       c.name.toLowerCase().includes(person.toLowerCase())
     );
-    
+
     if (!client) {
       throw new Error(`${person} no está registrado como cliente`);
     }
-    
+
     // CAMBIADO: Ahora es async/await
     const debts = await storageService.getDebts();
-    const clientDebts = debts.filter(d => 
-      d.type === 'owed' && 
+    const clientDebts = debts.filter(d =>
+      d.type === 'owed' &&
       d.person.toLowerCase() === client.name.toLowerCase()
     );
-    
+
     if (clientDebts.length === 0) {
-      return { 
-        amount: 0, 
+      return {
+        amount: 0,
         message: 'No hay deudas registradas',
-        clientName: client.name 
+        clientName: client.name
       };
     }
-    
+
     const pendingDebts = clientDebts.filter(d => d.status !== 'paid');
-    const totalPending = pendingDebts.reduce((sum, d) => 
+    const totalPending = pendingDebts.reduce((sum, d) =>
       sum + (d.amount - (d.paidAmount || 0)), 0
     );
-    
+
     return {
       clientName: client.name,
       amount: totalPending,
@@ -1046,14 +1063,14 @@ private async checkClientExists(personName: string): Promise<boolean> {
       totalCount: clientDebts.length,
     };
   }
-  
+
   private async handleCreateClient(parsed: ParsedCommand): Promise<boolean> {
     const { person } = parsed.entities;
-    
+
     if (!person) {
       throw new Error('¿Qué nombre tiene el nuevo cliente?');
     }
-    
+
     try {
       // CAMBIADO: Ahora es async/await
       await storageService.findOrCreateClient(this.capitalizeName(person));
@@ -1063,11 +1080,11 @@ private async checkClientExists(personName: string): Promise<boolean> {
       throw error;
     }
   }
-  
+
   // ============ MANEJO DE CONFIRMACIONES (CORREGIDO CON ASYNC/AWAIT) ============
-  
+
   async handleConfirmation(
-    confirmationData: any, 
+    confirmationData: any,
     confirm: boolean
   ): Promise<VoiceResponse> {
     if (!confirm) {
@@ -1076,9 +1093,9 @@ private async checkClientExists(personName: string): Promise<boolean> {
         response: 'Operación cancelada.',
       };
     }
-    
+
     const { action, person, amount, description } = confirmationData;
-    
+
     switch (action) {
       case 'add_debt':
         try {
@@ -1088,8 +1105,8 @@ private async checkClientExists(personName: string): Promise<boolean> {
           const debtRawText = confirmationData.rawText || '';
           const normalizedText = debtRawText.toLowerCase();
           const shouldBeOwing = normalizedText.includes('yo debo') ||
-                               normalizedText.includes('le debo') ||
-                               normalizedText.includes('debo a');
+            normalizedText.includes('le debo') ||
+            normalizedText.includes('debo a');
 
           try {
             // CAMBIADO: Ahora es async/await
@@ -1107,11 +1124,11 @@ private async checkClientExists(personName: string): Promise<boolean> {
             console.error('❌ Error creando deuda:', error);
             throw error;
           }
-          
+
           const responseText = debtRawText.toLowerCase();
           const isOwingResponse = responseText.includes('yo debo') ||
-                                 responseText.includes('le debo') ||
-                                 responseText.includes('debo a');
+            responseText.includes('le debo') ||
+            responseText.includes('debo a');
 
           const responseMessage = isOwingResponse
             ? `✅ Cliente creado y deuda registrada: le debes ${formatCurrency(amount)} a ${person}${description ? ` por "${description}"` : ''}.`
@@ -1119,7 +1136,7 @@ private async checkClientExists(personName: string): Promise<boolean> {
 
           // CAMBIADO: Ahora es async/await
           const clientSummary = await storageService.getClientSummary(person);
-          
+
           return {
             success: true,
             response: responseMessage,
@@ -1131,7 +1148,7 @@ private async checkClientExists(personName: string): Promise<boolean> {
             response: `❌ Error: ${error.message}`,
           };
         }
-        
+
       default:
         return {
           success: false,
@@ -1139,12 +1156,12 @@ private async checkClientExists(personName: string): Promise<boolean> {
         };
     }
   }
-  
+
   // ============ SISTEMA DE FALLBACK BÁSICO (CORREGIDO CON ASYNC/AWAIT) ============
-  
+
   private async fallbackToBasicSystem(text: string): Promise<VoiceResponse> {
     console.log('🔄 Usando sistema básico de regex');
-    
+
     const patterns = [
       {
         pattern: /(.+?)\s+(?:me debe|debe|qued[oó] debiendo)\s+(\d+)\s+pesos?(?:\s+por\s+(.+))?/i,
@@ -1176,7 +1193,7 @@ private async checkClientExists(personName: string): Promise<boolean> {
         }
       }
     ];
-    
+
     for (const { pattern, handler } of patterns) {
       const match = text.match(pattern);
       if (match) {
@@ -1187,38 +1204,208 @@ private async checkClientExists(personName: string): Promise<boolean> {
         };
       }
     }
-    
+
     return {
       success: false,
       response: 'No entendí el comando. Intenta con: "José debe 2000 pesos por materiales"',
     };
   }
+
+  // ============ MANEJADORES PARA CONSULTAS DE PAGOS ============
+
+// ============ MANEJADORES PARA CONSULTAS DE PAGOS (MEJORADOS) ============
+
+private async handlePaymentHistoryQuery(parsed: ParsedCommand): Promise<any> {
+  const { person } = parsed.entities;
   
+  if (!person) {
+    throw new Error('¿De quién quieres consultar el historial de pagos?');
+  }
+
+  try {
+    // Obtener historial completo
+    const paymentHistory = await storageService.getPaymentHistory(person);
+    
+    if (!paymentHistory || paymentHistory.length === 0) {
+      return {
+        person,
+        message: `${person} no tiene pagos registrados`,
+        totalPayments: 0,
+        totalAmount: 0,
+        hasPayments: false,
+        payments: []
+      };
+    }
+
+    // Formatear fechas para mostrar
+    const formattedPayments = paymentHistory.map(payment => {
+      const date = payment.date instanceof Date ? payment.date : new Date(payment.date);
+      return {
+        ...payment,
+        formattedDate: date.toLocaleDateString('es-ES', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric'
+        }),
+        shortDate: date.toLocaleDateString('es-ES'),
+        amount: payment.amount || 0
+      };
+    });
+
+    // Calcular totales
+    const totalAmount = formattedPayments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    return {
+      person,
+      totalPayments: paymentHistory.length,
+      totalAmount,
+      lastPayment: formattedPayments[0],
+      averagePayment: totalAmount / paymentHistory.length,
+      recentPayments: formattedPayments.slice(0, 5),
+      allPayments: formattedPayments,
+      daysSinceLastPayment: await storageService.getDaysSinceLastPayment(person),
+      hasPayments: true,
+      // Agregar mensaje específico para cada pago
+      paymentDetails: formattedPayments.map(p => 
+        `${p.formattedDate}: ${formatCurrency(p.amount)}${p.description ? ` - ${p.description}` : ''}`
+      )
+    };
+  } catch (error) {
+    console.error('Error en handlePaymentHistoryQuery:', error);
+    throw new Error(`Error al obtener el historial de pagos de ${person}`);
+  }
+}
+
+private async handleLastPaymentQuery(parsed: ParsedCommand): Promise<any> {
+  const { person } = parsed.entities;
+  
+  if (!person) {
+    throw new Error('¿De quién quieres saber el último pago?');
+  }
+
+  try {
+    const lastPayment = await storageService.getLastPayment(person);
+    
+    if (!lastPayment) {
+      return {
+        person,
+        message: `${person} no tiene pagos registrados`,
+        hasPayments: false,
+        formattedLastPayment: null
+      };
+    }
+
+    // Formatear la fecha de manera más descriptiva
+    const lastDate = lastPayment.date instanceof Date ? lastPayment.date : new Date(lastPayment.date);
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - lastDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    let timeDescription = '';
+    if (diffDays === 0) timeDescription = 'hoy mismo';
+    else if (diffDays === 1) timeDescription = 'ayer';
+    else if (diffDays < 7) timeDescription = `hace ${diffDays} días`;
+    else if (diffDays < 30) timeDescription = `hace ${Math.floor(diffDays / 7)} semanas`;
+    else if (diffDays < 365) timeDescription = `hace ${Math.floor(diffDays / 30)} meses`;
+    else timeDescription = `hace ${Math.floor(diffDays / 365)} años`;
+    
+    const formattedDate = lastDate.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    return {
+      person,
+      lastPayment: {
+        amount: lastPayment.amount || 0,
+        date: lastDate,
+        formattedDate,
+        description: lastPayment.note || lastPayment.debtDescription || 'Sin descripción',
+        daysAgo: diffDays,
+        timeDescription
+      },
+      hasPayments: true
+    };
+  } catch (error) {
+    console.error('Error en handleLastPaymentQuery:', error);
+    throw new Error(`Error al obtener el último pago de ${person}`);
+  }
+}
+
+private async handleOverdueDebtsQuery(parsed: ParsedCommand): Promise<any> {
+  try {
+    const overdueDebts = await storageService.getOverdueDebts(30);
+    
+    if (!overdueDebts || overdueDebts.length === 0) {
+      return {
+        message: 'No hay deudas vencidas (más de 30 días sin pago)',
+        count: 0,
+        totalAmount: 0,
+        debts: [],
+        formattedDebts: []
+      };
+    }
+
+    const formattedDebts = overdueDebts.map(debt => {
+      const debtDate = debt.date instanceof Date ? debt.date : new Date(debt.date);
+      const formattedDate = debtDate.toLocaleDateString('es-ES');
+      
+      return {
+        person: debt.person,
+        amount: debt.amount - (debt.paidAmount || 0),
+        daysOverdue: debt.daysOverdue || 0,
+        lastUpdate: debt.updatedAt ? new Date(debt.updatedAt).toLocaleDateString('es-ES') : formattedDate,
+        formattedDate,
+        description: debt.description || 'Sin descripción'
+      };
+    });
+
+    const totalOverdue = formattedDebts.reduce((sum, debt) => sum + debt.amount, 0);
+
+    return {
+      message: `Hay ${overdueDebts.length} deuda${overdueDebts.length > 1 ? 's' : ''} vencida${overdueDebts.length > 1 ? 's' : ''}`,
+      count: overdueDebts.length,
+      totalAmount: totalOverdue,
+      debts: overdueDebts,
+      formattedDebts,
+      // Agregar detalles para cada deuda
+      debtDetails: formattedDebts.map(d => 
+        `${d.person}: ${formatCurrency(d.amount)} desde ${d.formattedDate} (${d.daysOverdue} días de retraso)${d.description ? ` - ${d.description}` : ''}`
+      )
+    };
+  } catch (error) {
+    console.error('Error en handleOverdueDebtsQuery:', error);
+    throw new Error('Error al obtener las deudas vencidas');
+  }
+}
+
   // ============ UTILIDADES ============
-  
+
   private capitalizeName(name: string): string {
     return name
       .split(' ')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   }
-  
+
   async processText(text: string): Promise<VoiceResponse> {
     return this.processNaturalCommand(text);
   }
-  
+
   async getStats() {
     // CAMBIADO: Ahora es async/await
     const [debts, clients] = await Promise.all([
       storageService.getDebts(),
       storageService.getClients()
     ]);
-    
+
     const voices = this.getAllVoicesWithInfo();
     const realVoices = voices.filter(v => !v.isVirtual);
     const virtualVoices = voices.filter(v => v.isVirtual);
     const spanishVoices = voices.filter(v => v.isSpanish);
-    
+
     return {
       isVoiceSupported: this.isSupported,
       voicesAvailable: voices.length,
@@ -1250,15 +1437,15 @@ private async checkClientExists(personName: string): Promise<boolean> {
       this.setDefaultVoice();
     }
   }
-  
+
   public getRealVoices(): VoiceInfo[] {
     return this.getAllVoicesWithInfo(false);
   }
-  
+
   public getVirtualVoices(): VoiceInfo[] {
     return this.getAllVoicesWithInfo().filter(v => v.isVirtual);
   }
-  
+
   public countVoicesByType() {
     const voices = this.getAllVoicesWithInfo();
     return {
@@ -1270,6 +1457,8 @@ private async checkClientExists(personName: string): Promise<boolean> {
       female: voices.filter(v => v.gender === 'female').length
     };
   }
+
+  
 }
 
 export const enhancedVoiceService = new EnhancedVoiceService();
