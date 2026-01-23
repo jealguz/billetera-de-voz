@@ -243,7 +243,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
       )}
 
       {/* Login Form - Visible DESPUÉS del modal */}
-      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
+      <div className="bg-blue-50 rounded-2xl shadow-2xl p-8 max-w-md w-full border border-blue-100 animate-fade-in">
         {/* Logo/Brand Section */}
         <div className="text-center mb-8">
           <div className="w-28 h-28 mx-auto mb-4 shadow-lg rounded-xl overflow-hidden bg-white">
