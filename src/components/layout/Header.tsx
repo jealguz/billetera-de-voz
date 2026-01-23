@@ -24,23 +24,29 @@ const Header: React.FC = () => {
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings());
-  const [forceUpdate, setForceUpdate] = useState(0); // ✅ NUEVO: Forzar re-render
+  // REMOVED: const [forceUpdate, setForceUpdate] = useState(0); // ✅ Eliminado porque no se usa
   
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ NUEVO: Escuchar cambios en la configuración de voz
+  // ✅ MEJORADO: Escuchar cambios en la configuración de voz
   useEffect(() => {
-    const checkVoiceSettings = () => {
+    const handleSettingsChange = () => {
       const currentSettings = enhancedVoiceService.getVoiceSettings();
       if (JSON.stringify(currentSettings) !== JSON.stringify(voiceSettings)) {
         setVoiceSettings(currentSettings);
       }
     };
 
-    // Verificar cada 500ms si hay cambios
-    const interval = setInterval(checkVoiceSettings, 500);
+    // Crear un evento personalizado para notificar cambios
+    window.addEventListener('voiceSettingsChanged', handleSettingsChange);
     
-    return () => clearInterval(interval);
+    // También verificar periódicamente por si acaso
+    const interval = setInterval(handleSettingsChange, 1000);
+    
+    return () => {
+      window.removeEventListener('voiceSettingsChanged', handleSettingsChange);
+      clearInterval(interval);
+    };
   }, [voiceSettings]);
 
   // Cargar voces del sistema, personalidades y voz actual
@@ -74,7 +80,7 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  // ✅ MEJORADO: Función para manejar cambios en la velocidad
+  // ✅ FUNCIÓN SIMPLIFICADA: Manejar cambios en la velocidad
   const handleSpeedChange = (newRate: number) => {
     const updatedSettings = {
       ...voiceSettings,
@@ -84,27 +90,29 @@ const Header: React.FC = () => {
     // Actualizar en el servicio
     enhancedVoiceService.updateVoiceSettings(updatedSettings);
     
-    // ✅ FORZAR ACTUALIZACIÓN: Actualizar estado y forzar re-render
+    // Actualizar estado local
     setVoiceSettings(updatedSettings);
-    setForceUpdate(prev => prev + 1);
+    
+    // Disparar evento para notificar cambios
+    window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
     
     // Feedback inmediato
-    if (newRate !== voiceSettings.rate) {
+    if (Math.abs(newRate - voiceSettings.rate) >= 0.1) {
       toast.success(`Velocidad: ${newRate.toFixed(1)}x`, {
         icon: '⚡',
-        duration: 1000
+        duration: 800
       });
-    }
-    
-    // Reproducir confirmación
-    if (enhancedVoiceService.getVoiceSettings().voiceURI && Math.abs(newRate - voiceSettings.rate) > 0.1) {
-      setTimeout(() => {
-        enhancedVoiceService.speak(`Velocidad ${newRate.toFixed(1)}`);
-      }, 100);
+      
+      // Reproducir confirmación
+      if (enhancedVoiceService.getVoiceSettings().voiceURI) {
+        setTimeout(() => {
+          enhancedVoiceService.speak(`${newRate.toFixed(1)}`);
+        }, 100);
+      }
     }
   };
 
-  // ✅ NUEVO: Función para resetear a velocidad normal
+  // ✅ Función para resetear a velocidad normal
   const handleResetSpeed = () => {
     handleSpeedChange(1.0);
     toast.success('Velocidad restablecida a normal', {
@@ -113,34 +121,37 @@ const Header: React.FC = () => {
     });
   };
 
-  // ✅ NUEVO: Control de velocidad en línea
+  // ✅ Control de velocidad en línea
   const SpeedControl: React.FC = () => (
     <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm hover:shadow-md transition-shadow">
       <button
         onClick={() => handleSpeedChange(Math.max(0.5, voiceSettings.rate - 0.1))}
-        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold"
+        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold transition-colors"
         title="Reducir velocidad"
+        aria-label="Reducir velocidad"
       >
         −
       </button>
       
       <div className="flex flex-col items-center min-w-[60px]">
         <div className="text-xs text-gray-500">Velocidad</div>
-        <div className="font-bold text-blue-600">{voiceSettings.rate.toFixed(1)}x</div>
+        <div className="font-bold text-blue-600 text-sm">{voiceSettings.rate.toFixed(1)}x</div>
       </div>
       
       <button
         onClick={() => handleSpeedChange(Math.min(2.0, voiceSettings.rate + 0.1))}
-        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold"
+        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold transition-colors"
         title="Aumentar velocidad"
+        aria-label="Aumentar velocidad"
       >
         +
       </button>
       
       <button
         onClick={handleResetSpeed}
-        className="w-6 h-6 flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full"
+        className="w-6 h-6 flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full transition-colors"
         title="Restablecer a normal"
+        aria-label="Restablecer velocidad a normal"
       >
         <Settings size={12} />
       </button>
@@ -321,7 +332,9 @@ const Header: React.FC = () => {
     const success = enhancedVoiceService.setVoice(voice.uri);
     if (success) {
       setCurrentVoice(voice);
-      setForceUpdate(prev => prev + 1);
+      
+      // Disparar evento para notificar cambio
+      window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
       
       if (voice.isVirtual) {
         const personality = personalities.find(p => p.id === voice.personality);
@@ -363,7 +376,9 @@ const Header: React.FC = () => {
       
       const currentVoiceInfo = enhancedVoiceService.getCurrentVoiceInfo();
       setCurrentVoice(currentVoiceInfo);
-      setForceUpdate(prev => prev + 1);
+      
+      // Disparar evento para notificar cambio
+      window.dispatchEvent(new CustomEvent('voiceSettingsChanged'));
       
       const sampleVoice = systemVoices.find(v => 
         v.personality === personalityId && 
@@ -431,7 +446,7 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {/* ✅ NUEVO: Control de velocidad en línea */}
+          {/* ✅ Control de velocidad en línea */}
           <SpeedControl />
           
           <button
@@ -672,7 +687,7 @@ const Header: React.FC = () => {
           </div>
         )}
 
-        {/* Modal de voces - CON CONTROL DE VELOCIDAD FUNCIONAL */}
+        {/* Modal de voces */}
         {showVoiceModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto" onClick={() => setShowVoiceModal(false)}>
             <div className="min-h-screen flex items-start justify-center p-2 md:p-4" onClick={(e) => e.stopPropagation()}>
@@ -845,7 +860,6 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* ✅ CORREGIDO: Control de velocidad que SÍ funciona */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
                       <h4 className="font-semibold text-green-700 mb-2">⚙️ Filtros y Ajustes</h4>
                       <div className="space-y-4">
@@ -882,7 +896,6 @@ const Header: React.FC = () => {
                           </button>
                         </div>
                         
-                        {/* ✅ CONTROL DE VELOCIDAD QUE SÍ SE ACTUALIZA */}
                         <div className="pt-2 border-t border-green-200">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium text-gray-700">Velocidad global</span>
@@ -890,7 +903,7 @@ const Header: React.FC = () => {
                               <span className="font-bold text-blue-600 text-lg">{voiceSettings.rate.toFixed(1)}x</span>
                               <button
                                 onClick={handleResetSpeed}
-                                className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
+                                className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 transition-colors"
                                 title="Restablecer a normal"
                               >
                                 1.0x
@@ -898,7 +911,6 @@ const Header: React.FC = () => {
                             </div>
                           </div>
                           
-                          {/* Control deslizante con evento onChange CORRECTO */}
                           <input
                             type="range"
                             min="0.5"
@@ -916,27 +928,6 @@ const Header: React.FC = () => {
                             <span>0.5x<br/><span className="text-gray-400">Lento</span></span>
                             <span className="text-center">1.0x<br/><span className="text-green-600">Normal</span></span>
                             <span>2.0x<br/><span className="text-gray-400">Rápido</span></span>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-center gap-2">
-                            <button
-                              onClick={() => handleSpeedChange(0.7)}
-                              className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg"
-                            >
-                              Muy lento
-                            </button>
-                            <button
-                              onClick={() => handleSpeedChange(1.0)}
-                              className="text-xs bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg"
-                            >
-                              Normal
-                            </button>
-                            <button
-                              onClick={() => handleSpeedChange(1.5)}
-                              className="text-xs bg-blue-100 hover:bg-blue-200 px-3 py-1.5 rounded-lg"
-                            >
-                              Rápido
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -1062,7 +1053,7 @@ const Header: React.FC = () => {
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                       <div className="text-sm text-gray-600">
                         <span className="font-medium">Consejos:</span>{' '}
-                        • Prueba antes de seleccionar • Personaliza velocidad con los botones +/−
+                        • Usa los botones +/− para ajustar velocidad • Prueba antes de seleccionar
                       </div>
                       <div className="flex gap-2">
                         <button
