@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, LogOut, ChevronDown, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume } from 'lucide-react';
+import { RotateCcw, LogOut, ChevronDown, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/databaseService';
@@ -23,9 +23,25 @@ const Header: React.FC = () => {
   const [showPreviewOptions, setShowPreviewOptions] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
-  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings()); // ✅ NUEVO: Estado reactivo
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings());
+  const [forceUpdate, setForceUpdate] = useState(0); // ✅ NUEVO: Forzar re-render
   
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ✅ NUEVO: Escuchar cambios en la configuración de voz
+  useEffect(() => {
+    const checkVoiceSettings = () => {
+      const currentSettings = enhancedVoiceService.getVoiceSettings();
+      if (JSON.stringify(currentSettings) !== JSON.stringify(voiceSettings)) {
+        setVoiceSettings(currentSettings);
+      }
+    };
+
+    // Verificar cada 500ms si hay cambios
+    const interval = setInterval(checkVoiceSettings, 500);
+    
+    return () => clearInterval(interval);
+  }, [voiceSettings]);
 
   // Cargar voces del sistema, personalidades y voz actual
   useEffect(() => {
@@ -40,7 +56,6 @@ const Header: React.FC = () => {
       const currentVoiceInfo = enhancedVoiceService.getCurrentVoiceInfo();
       setCurrentVoice(currentVoiceInfo);
       
-      // ✅ ACTUALIZAR: Cargar configuración actual
       const currentSettings = enhancedVoiceService.getVoiceSettings();
       setVoiceSettings(currentSettings);
     };
@@ -59,7 +74,7 @@ const Header: React.FC = () => {
     };
   }, []);
 
-  // ✅ NUEVO: Función para manejar cambios en la velocidad
+  // ✅ MEJORADO: Función para manejar cambios en la velocidad
   const handleSpeedChange = (newRate: number) => {
     const updatedSettings = {
       ...voiceSettings,
@@ -69,33 +84,68 @@ const Header: React.FC = () => {
     // Actualizar en el servicio
     enhancedVoiceService.updateVoiceSettings(updatedSettings);
     
-    // Actualizar estado local para re-renderizar
+    // ✅ FORZAR ACTUALIZACIÓN: Actualizar estado y forzar re-render
     setVoiceSettings(updatedSettings);
+    setForceUpdate(prev => prev + 1);
     
-    // Opcional: Dar feedback
-    toast.success(`Velocidad cambiada a ${newRate.toFixed(1)}x`, {
-      icon: '⚡',
-      duration: 1500
-    });
+    // Feedback inmediato
+    if (newRate !== voiceSettings.rate) {
+      toast.success(`Velocidad: ${newRate.toFixed(1)}x`, {
+        icon: '⚡',
+        duration: 1000
+      });
+    }
     
-    // Opcional: Reproducir confirmación
-    if (enhancedVoiceService.getVoiceSettings().voiceURI) {
+    // Reproducir confirmación
+    if (enhancedVoiceService.getVoiceSettings().voiceURI && Math.abs(newRate - voiceSettings.rate) > 0.1) {
       setTimeout(() => {
-        enhancedVoiceService.speak(`Velocidad ajustada a ${newRate.toFixed(1)}`);
+        enhancedVoiceService.speak(`Velocidad ${newRate.toFixed(1)}`);
       }, 100);
     }
   };
 
-  // ✅ NUEVO: Función para actualizar la velocidad desde fuera del modal
-  const updateVoiceSettings = (newSettings: Partial<VoiceSettings>) => {
-    const updated = {
-      ...voiceSettings,
-      ...newSettings
-    };
-    
-    enhancedVoiceService.updateVoiceSettings(updated);
-    setVoiceSettings(updated);
+  // ✅ NUEVO: Función para resetear a velocidad normal
+  const handleResetSpeed = () => {
+    handleSpeedChange(1.0);
+    toast.success('Velocidad restablecida a normal', {
+      icon: '↺',
+      duration: 1500
+    });
   };
+
+  // ✅ NUEVO: Control de velocidad en línea
+  const SpeedControl: React.FC = () => (
+    <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-1.5 shadow-sm hover:shadow-md transition-shadow">
+      <button
+        onClick={() => handleSpeedChange(Math.max(0.5, voiceSettings.rate - 0.1))}
+        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold"
+        title="Reducir velocidad"
+      >
+        −
+      </button>
+      
+      <div className="flex flex-col items-center min-w-[60px]">
+        <div className="text-xs text-gray-500">Velocidad</div>
+        <div className="font-bold text-blue-600">{voiceSettings.rate.toFixed(1)}x</div>
+      </div>
+      
+      <button
+        onClick={() => handleSpeedChange(Math.min(2.0, voiceSettings.rate + 0.1))}
+        className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold"
+        title="Aumentar velocidad"
+      >
+        +
+      </button>
+      
+      <button
+        onClick={handleResetSpeed}
+        className="w-6 h-6 flex items-center justify-center bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-full"
+        title="Restablecer a normal"
+      >
+        <Settings size={12} />
+      </button>
+    </div>
+  );
 
   // Cargar información del último backup
   useEffect(() => {
@@ -177,7 +227,6 @@ const Header: React.FC = () => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      // Guardar timestamp del último backup
       const now = Date.now();
       localStorage.setItem('lastBackup', now.toString());
       const date = new Date(now);
@@ -201,12 +250,10 @@ const Header: React.FC = () => {
       try {
         const data = JSON.parse(e.target?.result as string);
         
-        // Verificar que tenga la estructura correcta
         if (!data.debts && !data.clients && !data.payments) {
           throw new Error('Archivo de backup inválido');
         }
         
-        // Importar datos a IndexedDB usando storageService
         await storageService.importData(data);
         
         setShowBackupModal(false);
@@ -216,7 +263,6 @@ const Header: React.FC = () => {
           icon: '✅'
         });
         
-        // Refrescar la página después de un breve delay
         setTimeout(() => {
           window.location.reload();
         }, 1500);
@@ -275,10 +321,7 @@ const Header: React.FC = () => {
     const success = enhancedVoiceService.setVoice(voice.uri);
     if (success) {
       setCurrentVoice(voice);
-      
-      // ✅ ACTUALIZAR: Refrescar configuración
-      const currentSettings = enhancedVoiceService.getVoiceSettings();
-      setVoiceSettings(currentSettings);
+      setForceUpdate(prev => prev + 1);
       
       if (voice.isVirtual) {
         const personality = personalities.find(p => p.id === voice.personality);
@@ -293,7 +336,6 @@ const Header: React.FC = () => {
         });
       }
       
-      // Reproducir confirmación automática
       try {
         const confirmText = voice.isVirtual 
           ? `Perfecto, ahora soy tu asistente ${voice.name.split('-')[1]?.trim() || 'personalizado'}`
@@ -321,10 +363,7 @@ const Header: React.FC = () => {
       
       const currentVoiceInfo = enhancedVoiceService.getCurrentVoiceInfo();
       setCurrentVoice(currentVoiceInfo);
-      
-      // ✅ ACTUALIZAR: Refrescar configuración
-      const currentSettings = enhancedVoiceService.getVoiceSettings();
-      setVoiceSettings(currentSettings);
+      setForceUpdate(prev => prev + 1);
       
       const sampleVoice = systemVoices.find(v => 
         v.personality === personalityId && 
@@ -391,36 +430,10 @@ const Header: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
-          {/* ✅ NUEVO: Mostrar velocidad actual en botón pequeño */}
-          <div className="relative group">
-            <button
-              onClick={() => setShowVoiceModal(true)}
-              className="px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 text-sm"
-              title="Velocidad actual"
-            >
-              <span className="text-gray-700">{voiceSettings.rate.toFixed(1)}x</span>
-              <Zap size={14} className="text-yellow-500" />
-            </button>
-            <div className="absolute right-0 top-full mt-1 w-48 p-3 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
-              <div className="text-xs text-gray-600 mb-2">Velocidad global</div>
-              <input
-                type="range"
-                min="0.5"
-                max="2.0"
-                step="0.1"
-                value={voiceSettings.rate}
-                onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
-              />
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0.5x</span>
-                <span className="font-medium">{voiceSettings.rate.toFixed(1)}x</span>
-                <span>2.0x</span>
-              </div>
-            </div>
-          </div>
-
+        <div className="flex items-center gap-3">
+          {/* ✅ NUEVO: Control de velocidad en línea */}
+          <SpeedControl />
+          
           <button
             onClick={() => setShowBackupModal(true)}
             className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
@@ -551,7 +564,6 @@ const Header: React.FC = () => {
                 )}
               </div>
               
-              {/* Área desplazable */}
               <div className="overflow-y-auto flex-1 px-6">
                 {confirmStep === 1 ? (
                   <div className="space-y-3 mb-6">
@@ -610,13 +622,10 @@ const Header: React.FC = () => {
                     </label>
                   </div>
                 ) : (
-                  <div className="mb-6">
-                    {/* Contenido adicional si necesitas */}
-                  </div>
+                  <div className="mb-6"></div>
                 )}
               </div>
               
-              {/* Botones fijos en la parte inferior */}
               <div className="p-6 pt-4 border-t border-gray-200 flex-shrink-0">
                 {confirmStep === 1 ? (
                   <div className="flex gap-3">
@@ -659,21 +668,15 @@ const Header: React.FC = () => {
                   </div>
                 )}
               </div>
-              
-              {/* Indicador de scroll (opcional) */}
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-gray-400">
-                <ChevronDown size={20} />
-              </div>
             </div>
           </div>
         )}
 
-        {/* Modal de voces - ACTUALIZADO CON CONTROL DE VELOCIDAD REACTIVO */}
+        {/* Modal de voces - CON CONTROL DE VELOCIDAD FUNCIONAL */}
         {showVoiceModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
-            <div className="min-h-screen flex items-start justify-center p-2 md:p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto" onClick={() => setShowVoiceModal(false)}>
+            <div className="min-h-screen flex items-start justify-center p-2 md:p-4" onClick={(e) => e.stopPropagation()}>
               <div className="bg-white rounded-xl w-full max-w-4xl my-4 md:my-8">
-                {/* Encabezado fijo */}
                 <div className="sticky top-0 bg-white z-10 rounded-t-xl border-b p-4 md:p-6">
                   <div className="flex justify-between items-center">
                     <div>
@@ -703,7 +706,6 @@ const Header: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Barra de control de preview */}
                   <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Texto para probar:
@@ -757,11 +759,8 @@ const Header: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Contenido principal */}
                 <div className="p-4 md:p-6">
-                  {/* Paneles de información en grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    {/* Voz actual */}
                     <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
                       <h4 className="font-semibold text-purple-700 mb-2 flex items-center gap-2">
                         <Sparkles size={16} />
@@ -806,7 +805,6 @@ const Header: React.FC = () => {
                       )}
                     </div>
                     
-                    {/* Personalidades */}
                     <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
                       <h4 className="font-semibold text-blue-700 mb-2 flex items-center gap-2">
                         <Zap size={16} />
@@ -847,9 +845,9 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Filtros y ajustes - ACTUALIZADO */}
+                    {/* ✅ CORREGIDO: Control de velocidad que SÍ funciona */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                      <h4 className="font-semibold text-green-700 mb-2">⚙️ Filtros</h4>
+                      <h4 className="font-semibold text-green-700 mb-2">⚙️ Filtros y Ajustes</h4>
                       <div className="space-y-4">
                         <div className="flex gap-2">
                           <button
@@ -884,42 +882,58 @@ const Header: React.FC = () => {
                           </button>
                         </div>
                         
-                        {/* ✅ CORREGIDO: Control de velocidad con estado reactivo */}
-                        <div>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span>Velocidad global</span>
-                            <span className="font-medium">{voiceSettings.rate.toFixed(1)}x</span>
+                        {/* ✅ CONTROL DE VELOCIDAD QUE SÍ SE ACTUALIZA */}
+                        <div className="pt-2 border-t border-green-200">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-gray-700">Velocidad global</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-blue-600 text-lg">{voiceSettings.rate.toFixed(1)}x</span>
+                              <button
+                                onClick={handleResetSpeed}
+                                className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200"
+                                title="Restablecer a normal"
+                              >
+                                1.0x
+                              </button>
+                            </div>
                           </div>
+                          
+                          {/* Control deslizante con evento onChange CORRECTO */}
                           <input
                             type="range"
                             min="0.5"
                             max="2.0"
                             step="0.1"
                             value={voiceSettings.rate}
-                            onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
-                            className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-600"
+                            onChange={(e) => {
+                              const newRate = parseFloat(e.target.value);
+                              handleSpeedChange(newRate);
+                            }}
+                            className="w-full h-2 bg-gradient-to-r from-green-300 to-blue-300 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-600 [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:shadow-lg"
                           />
-                          <div className="flex justify-between text-xs text-gray-500 mt-1">
-                            <span>0.5x</span>
-                            <span className="font-medium text-green-600">{voiceSettings.rate.toFixed(1)}x</span>
-                            <span>2.0x</span>
+                          
+                          <div className="flex justify-between text-xs text-gray-500 mt-2 px-1">
+                            <span>0.5x<br/><span className="text-gray-400">Lento</span></span>
+                            <span className="text-center">1.0x<br/><span className="text-green-600">Normal</span></span>
+                            <span>2.0x<br/><span className="text-gray-400">Rápido</span></span>
                           </div>
-                          <div className="mt-2 flex gap-2">
+                          
+                          <div className="mt-3 flex justify-center gap-2">
                             <button
-                              onClick={() => handleSpeedChange(0.8)}
-                              className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded"
+                              onClick={() => handleSpeedChange(0.7)}
+                              className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-lg"
                             >
-                              Lento
+                              Muy lento
                             </button>
                             <button
                               onClick={() => handleSpeedChange(1.0)}
-                              className="text-xs bg-green-100 hover:bg-green-200 px-2 py-1 rounded"
+                              className="text-xs bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg"
                             >
                               Normal
                             </button>
                             <button
-                              onClick={() => handleSpeedChange(1.3)}
-                              className="text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
+                              onClick={() => handleSpeedChange(1.5)}
+                              className="text-xs bg-blue-100 hover:bg-blue-200 px-3 py-1.5 rounded-lg"
                             >
                               Rápido
                             </button>
@@ -929,7 +943,6 @@ const Header: React.FC = () => {
                     </div>
                   </div>
                   
-                  {/* Lista de voces */}
                   <div className="mb-6">
                     <div className="mb-4 flex items-center justify-between">
                       <h4 className="font-semibold text-gray-700 text-lg">
@@ -1007,27 +1020,25 @@ const Header: React.FC = () => {
                             </div>
                             
                             <div className="flex flex-col gap-2 ml-3">
-                              <div className="relative group">
-                                <button
-                                  onClick={() => handlePreviewVoice(voice, previewText)}
-                                  disabled={isPreviewing}
-                                  className={`px-3 py-2 text-sm rounded-lg flex items-center gap-1 transition-all ${
-                                    isPreviewing && currentlyPlaying === voice.uri
-                                      ? 'bg-yellow-500 text-white'
-                                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                  }`}
-                                >
-                                  {isPreviewing && currentlyPlaying === voice.uri ? (
-                                    <>
-                                      <span className="animate-pulse">▶️</span> Sonando
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play size={14} /> Probar
-                                    </>
-                                  )}
-                                </button>
-                              </div>
+                              <button
+                                onClick={() => handlePreviewVoice(voice, previewText)}
+                                disabled={isPreviewing}
+                                className={`px-3 py-2 text-sm rounded-lg flex items-center gap-1 transition-all ${
+                                  isPreviewing && currentlyPlaying === voice.uri
+                                    ? 'bg-yellow-500 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                              >
+                                {isPreviewing && currentlyPlaying === voice.uri ? (
+                                  <>
+                                    <span className="animate-pulse">▶️</span> Sonando
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play size={14} /> Probar
+                                  </>
+                                )}
+                              </button>
                               
                               <button
                                 onClick={() => handleVoiceSelect(voice)}
@@ -1042,33 +1053,16 @@ const Header: React.FC = () => {
                               </button>
                             </div>
                           </div>
-                          
-                          {/* Estado de preview */}
-                          {isPreviewing && currentlyPlaying === voice.uri && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <div className="flex items-center gap-2 text-sm text-purple-600">
-                                <span className="animate-pulse">🔊</span>
-                                <span>Reproduciendo muestra...</span>
-                                <button
-                                  onClick={stopAllPreviews}
-                                  className="ml-auto text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200"
-                                >
-                                  Detener
-                                </button>
-                              </div>
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
                   </div>
                   
-                  {/* Pie del modal */}
                   <div className="pt-4 border-t border-gray-200">
                     <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                       <div className="text-sm text-gray-600">
                         <span className="font-medium">Consejos:</span>{' '}
-                        • Prueba antes de seleccionar • Di "voz formal/amigable" • Personaliza el texto de prueba
+                        • Prueba antes de seleccionar • Personaliza velocidad con los botones +/−
                       </div>
                       <div className="flex gap-2">
                         <button
