@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, LogOut,ChevronDown, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume } from 'lucide-react';
+import { RotateCcw, LogOut, ChevronDown, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/databaseService';
-import { enhancedVoiceService, VoiceInfo, VoicePersonality } from '../../services/enhancedVoiceService';
+import { enhancedVoiceService, VoiceInfo, VoicePersonality, VoiceSettings } from '../../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
 
 const Header: React.FC = () => {
@@ -23,6 +23,7 @@ const Header: React.FC = () => {
   const [showPreviewOptions, setShowPreviewOptions] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings()); // ✅ NUEVO: Estado reactivo
   
   const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -38,6 +39,10 @@ const Header: React.FC = () => {
       
       const currentVoiceInfo = enhancedVoiceService.getCurrentVoiceInfo();
       setCurrentVoice(currentVoiceInfo);
+      
+      // ✅ ACTUALIZAR: Cargar configuración actual
+      const currentSettings = enhancedVoiceService.getVoiceSettings();
+      setVoiceSettings(currentSettings);
     };
 
     loadVoiceData();
@@ -53,6 +58,44 @@ const Header: React.FC = () => {
       stopAllPreviews();
     };
   }, []);
+
+  // ✅ NUEVO: Función para manejar cambios en la velocidad
+  const handleSpeedChange = (newRate: number) => {
+    const updatedSettings = {
+      ...voiceSettings,
+      rate: newRate
+    };
+    
+    // Actualizar en el servicio
+    enhancedVoiceService.updateVoiceSettings(updatedSettings);
+    
+    // Actualizar estado local para re-renderizar
+    setVoiceSettings(updatedSettings);
+    
+    // Opcional: Dar feedback
+    toast.success(`Velocidad cambiada a ${newRate.toFixed(1)}x`, {
+      icon: '⚡',
+      duration: 1500
+    });
+    
+    // Opcional: Reproducir confirmación
+    if (enhancedVoiceService.getVoiceSettings().voiceURI) {
+      setTimeout(() => {
+        enhancedVoiceService.speak(`Velocidad ajustada a ${newRate.toFixed(1)}`);
+      }, 100);
+    }
+  };
+
+  // ✅ NUEVO: Función para actualizar la velocidad desde fuera del modal
+  const updateVoiceSettings = (newSettings: Partial<VoiceSettings>) => {
+    const updated = {
+      ...voiceSettings,
+      ...newSettings
+    };
+    
+    enhancedVoiceService.updateVoiceSettings(updated);
+    setVoiceSettings(updated);
+  };
 
   // Cargar información del último backup
   useEffect(() => {
@@ -80,8 +123,6 @@ const Header: React.FC = () => {
     setCurrentlyPlaying(voice.uri);
     
     try {
-      //const textToPreview = customText || previewText;
-      
       await enhancedVoiceService.previewVoice(voice);
       
       if (customText) {
@@ -190,7 +231,7 @@ const Header: React.FC = () => {
     reader.readAsText(file);
   };
 
-  // FUNCIONES DE RESET CORREGIDAS
+  // FUNCIONES DE RESET
   const handleResetConfirm = async () => {
     if (!resetType) return;
     
@@ -235,6 +276,10 @@ const Header: React.FC = () => {
     if (success) {
       setCurrentVoice(voice);
       
+      // ✅ ACTUALIZAR: Refrescar configuración
+      const currentSettings = enhancedVoiceService.getVoiceSettings();
+      setVoiceSettings(currentSettings);
+      
       if (voice.isVirtual) {
         const personality = personalities.find(p => p.id === voice.personality);
         toast.success(`Voz cambiada a: ${personality?.name}`, {
@@ -276,6 +321,10 @@ const Header: React.FC = () => {
       
       const currentVoiceInfo = enhancedVoiceService.getCurrentVoiceInfo();
       setCurrentVoice(currentVoiceInfo);
+      
+      // ✅ ACTUALIZAR: Refrescar configuración
+      const currentSettings = enhancedVoiceService.getVoiceSettings();
+      setVoiceSettings(currentSettings);
       
       const sampleVoice = systemVoices.find(v => 
         v.personality === personalityId && 
@@ -343,6 +392,35 @@ const Header: React.FC = () => {
         </div>
         
         <div className="flex items-center gap-2">
+          {/* ✅ NUEVO: Mostrar velocidad actual en botón pequeño */}
+          <div className="relative group">
+            <button
+              onClick={() => setShowVoiceModal(true)}
+              className="px-3 py-1 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1 text-sm"
+              title="Velocidad actual"
+            >
+              <span className="text-gray-700">{voiceSettings.rate.toFixed(1)}x</span>
+              <Zap size={14} className="text-yellow-500" />
+            </button>
+            <div className="absolute right-0 top-full mt-1 w-48 p-3 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-20">
+              <div className="text-xs text-gray-600 mb-2">Velocidad global</div>
+              <input
+                type="range"
+                min="0.5"
+                max="2.0"
+                step="0.1"
+                value={voiceSettings.rate}
+                onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0.5x</span>
+                <span className="font-medium">{voiceSettings.rate.toFixed(1)}x</span>
+                <span>2.0x</span>
+              </div>
+            </div>
+          </div>
+
           <button
             onClick={() => setShowBackupModal(true)}
             className="p-2 hover:bg-blue-100 rounded-lg transition-colors"
@@ -434,164 +512,163 @@ const Header: React.FC = () => {
         )}
 
         {/* Modal de reset */}
-        {/* Modal de reset */}
-{showResetModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div className="bg-white rounded-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col">
-      <div className="p-6 pb-4 flex-shrink-0">
-        {confirmStep === 1 ? (
-          <>
-            <h3 className="text-lg font-bold mb-4 text-red-600">⚠️ Reset de Datos</h3>
-            <p className="text-gray-700 mb-4">
-              ¿Qué datos quieres eliminar? Esta acción no se puede deshacer.
-            </p>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-yellow-800">
-                💡 <strong>Recomendación:</strong> Antes de resetear, exporta un backup.
-              </p>
+        {showResetModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col">
+              <div className="p-6 pb-4 flex-shrink-0">
+                {confirmStep === 1 ? (
+                  <>
+                    <h3 className="text-lg font-bold mb-4 text-red-600">⚠️ Reset de Datos</h3>
+                    <p className="text-gray-700 mb-4">
+                      ¿Qué datos quieres eliminar? Esta acción no se puede deshacer.
+                    </p>
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-yellow-800">
+                        💡 <strong>Recomendación:</strong> Antes de resetear, exporta un backup.
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-lg font-bold mb-4 text-red-600">🚨 Confirmación Final</h3>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                      <p className="text-red-700 font-bold mb-2">
+                        ⚠️ ESTA ACCIÓN ES IRREVERSIBLE
+                      </p>
+                      <p className="text-red-600">
+                        {resetType === 'debts' 
+                          ? 'Vas a eliminar todas las deudas registradas. Los pagos y clientes se mantendrán.'
+                          : resetType === 'payments'
+                          ? 'Vas a resetear todos los pagos. Las deudas volverán a estado "pendiente".'
+                          : 'Vas a eliminar TODOS los datos: deudas, pagos y clientes. La aplicación quedará vacía.'
+                        }
+                      </p>
+                    </div>
+                    <p className="text-gray-700 mb-6">
+                      Si no tienes un backup reciente, perderás toda tu información financiera.
+                    </p>
+                  </>
+                )}
+              </div>
+              
+              {/* Área desplazable */}
+              <div className="overflow-y-auto flex-1 px-6">
+                {confirmStep === 1 ? (
+                  <div className="space-y-3 mb-6">
+                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resetType"
+                        value="debts"
+                        onChange={(e) => setResetType(e.target.value as 'debts')}
+                        className="mr-3"
+                      />
+                      <div>
+                        <div className="font-medium">Eliminar todas las deudas</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          • Eliminará todas las deudas registradas<br/>
+                          • Mantendrá los pagos realizados<br/>
+                          • Los clientes quedarán con total en 0
+                        </div>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resetType"
+                        value="payments"
+                        onChange={(e) => setResetType(e.target.value as 'payments')}
+                        className="mr-3"
+                      />
+                      <div>
+                        <div className="font-medium">Resetear todos los pagos</div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          • Todas las deudas volverán a "pendientes"<br/>
+                          • Se eliminarán los registros de pagos<br/>
+                          • Los montos se mantendrán
+                        </div>
+                      </div>
+                    </label>
+                    
+                    <label className="flex items-center p-3 border border-red-200 rounded-lg hover:bg-red-50 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="resetType"
+                        value="all"
+                        onChange={(e) => setResetType(e.target.value as 'all')}
+                        className="mr-3"
+                      />
+                      <div>
+                        <div className="font-medium text-red-600">Eliminar TODO</div>
+                        <div className="text-sm text-red-500 mt-1">
+                          • Eliminará TODAS las deudas y pagos<br/>
+                          • Borrará todos los clientes<br/>
+                          • Dejará la aplicación completamente vacía
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+                ) : (
+                  <div className="mb-6">
+                    {/* Contenido adicional si necesitas */}
+                  </div>
+                )}
+              </div>
+              
+              {/* Botones fijos en la parte inferior */}
+              <div className="p-6 pt-4 border-t border-gray-200 flex-shrink-0">
+                {confirmStep === 1 ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleResetCancel}
+                      className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => resetType && setConfirmStep(2)}
+                      disabled={!resetType}
+                      className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                    >
+                      Continuar
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setConfirmStep(1)}
+                      className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                      Atrás
+                    </button>
+                    <button
+                      onClick={handleResetConfirm}
+                      disabled={isResetting}
+                      className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                    >
+                      {isResetting ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Eliminando...
+                        </>
+                      ) : (
+                        'Sí, eliminar definitivamente'
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Indicador de scroll (opcional) */}
+              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-gray-400">
+                <ChevronDown size={20} />
+              </div>
             </div>
-          </>
-        ) : (
-          <>
-            <h3 className="text-lg font-bold mb-4 text-red-600">🚨 Confirmación Final</h3>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-700 font-bold mb-2">
-                ⚠️ ESTA ACCIÓN ES IRREVERSIBLE
-              </p>
-              <p className="text-red-600">
-                {resetType === 'debts' 
-                  ? 'Vas a eliminar todas las deudas registradas. Los pagos y clientes se mantendrán.'
-                  : resetType === 'payments'
-                  ? 'Vas a resetear todos los pagos. Las deudas volverán a estado "pendiente".'
-                  : 'Vas a eliminar TODOS los datos: deudas, pagos y clientes. La aplicación quedará vacía.'
-                }
-              </p>
-            </div>
-            <p className="text-gray-700 mb-6">
-              Si no tienes un backup reciente, perderás toda tu información financiera.
-            </p>
-          </>
-        )}
-      </div>
-      
-      {/* Área desplazable */}
-      <div className="overflow-y-auto flex-1 px-6">
-        {confirmStep === 1 ? (
-          <div className="space-y-3 mb-6">
-            <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <input
-                type="radio"
-                name="resetType"
-                value="debts"
-                onChange={(e) => setResetType(e.target.value as 'debts')}
-                className="mr-3"
-              />
-              <div>
-                <div className="font-medium">Eliminar todas las deudas</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  • Eliminará todas las deudas registradas<br/>
-                  • Mantendrá los pagos realizados<br/>
-                  • Los clientes quedarán con total en 0
-                </div>
-              </div>
-            </label>
-            
-            <label className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-              <input
-                type="radio"
-                name="resetType"
-                value="payments"
-                onChange={(e) => setResetType(e.target.value as 'payments')}
-                className="mr-3"
-              />
-              <div>
-                <div className="font-medium">Resetear todos los pagos</div>
-                <div className="text-sm text-gray-500 mt-1">
-                  • Todas las deudas volverán a "pendientes"<br/>
-                  • Se eliminarán los registros de pagos<br/>
-                  • Los montos se mantendrán
-                </div>
-              </div>
-            </label>
-            
-            <label className="flex items-center p-3 border border-red-200 rounded-lg hover:bg-red-50 cursor-pointer">
-              <input
-                type="radio"
-                name="resetType"
-                value="all"
-                onChange={(e) => setResetType(e.target.value as 'all')}
-                className="mr-3"
-              />
-              <div>
-                <div className="font-medium text-red-600">Eliminar TODO</div>
-                <div className="text-sm text-red-500 mt-1">
-                  • Eliminará TODAS las deudas y pagos<br/>
-                  • Borrará todos los clientes<br/>
-                  • Dejará la aplicación completamente vacía
-                </div>
-              </div>
-            </label>
-          </div>
-        ) : (
-          <div className="mb-6">
-            {/* Contenido adicional si necesitas */}
           </div>
         )}
-      </div>
-      
-      {/* Botones fijos en la parte inferior */}
-      <div className="p-6 pt-4 border-t border-gray-200 flex-shrink-0">
-        {confirmStep === 1 ? (
-          <div className="flex gap-3">
-            <button
-              onClick={handleResetCancel}
-              className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => resetType && setConfirmStep(2)}
-              disabled={!resetType}
-              className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
-            >
-              Continuar
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-3">
-            <button
-              onClick={() => setConfirmStep(1)}
-              className="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Atrás
-            </button>
-            <button
-              onClick={handleResetConfirm}
-              disabled={isResetting}
-              className="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-            >
-              {isResetting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  Eliminando...
-                </>
-              ) : (
-                'Sí, eliminar definitivamente'
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-      
-      {/* Indicador de scroll (opcional) */}
-      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 text-gray-400">
-        <ChevronDown size={20} />
-      </div>
-    </div>
-  </div>
-)}
 
-        {/* Modal de voces - VENTANA COMPLETA CON SCROLL */}
+        {/* Modal de voces - ACTUALIZADO CON CONTROL DE VELOCIDAD REACTIVO */}
         {showVoiceModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 z-50 overflow-y-auto">
             <div className="min-h-screen flex items-start justify-center p-2 md:p-4">
@@ -680,7 +757,7 @@ const Header: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Contenido principal - SE DESPLAZA TODO JUNTO */}
+                {/* Contenido principal */}
                 <div className="p-4 md:p-6">
                   {/* Paneles de información en grid */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -770,7 +847,7 @@ const Header: React.FC = () => {
                       </div>
                     </div>
                     
-                    {/* Filtros y ajustes */}
+                    {/* Filtros y ajustes - ACTUALIZADO */}
                     <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
                       <h4 className="font-semibold text-green-700 mb-2">⚙️ Filtros</h4>
                       <div className="space-y-4">
@@ -807,24 +884,46 @@ const Header: React.FC = () => {
                           </button>
                         </div>
                         
+                        {/* ✅ CORREGIDO: Control de velocidad con estado reactivo */}
                         <div>
                           <div className="flex justify-between text-sm mb-1">
                             <span>Velocidad global</span>
-                            <span className="font-medium">{enhancedVoiceService.getVoiceSettings().rate.toFixed(1)}x</span>
+                            <span className="font-medium">{voiceSettings.rate.toFixed(1)}x</span>
                           </div>
                           <input
                             type="range"
                             min="0.5"
                             max="2.0"
                             step="0.1"
-                            value={enhancedVoiceService.getVoiceSettings().rate}
-                            onChange={(e) => {
-                              enhancedVoiceService.updateVoiceSettings({ 
-                                rate: parseFloat(e.target.value) 
-                              });
-                            }}
-                            className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer"
+                            value={voiceSettings.rate}
+                            onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                            className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-green-600"
                           />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>0.5x</span>
+                            <span className="font-medium text-green-600">{voiceSettings.rate.toFixed(1)}x</span>
+                            <span>2.0x</span>
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={() => handleSpeedChange(0.8)}
+                              className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded"
+                            >
+                              Lento
+                            </button>
+                            <button
+                              onClick={() => handleSpeedChange(1.0)}
+                              className="text-xs bg-green-100 hover:bg-green-200 px-2 py-1 rounded"
+                            >
+                              Normal
+                            </button>
+                            <button
+                              onClick={() => handleSpeedChange(1.3)}
+                              className="text-xs bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded"
+                            >
+                              Rápido
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
