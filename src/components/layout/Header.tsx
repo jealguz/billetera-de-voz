@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { RotateCcw, LogOut, ChevronDown, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings } from 'lucide-react';
+import { RotateCcw, LogOut, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
 import { storageService } from '../../services/databaseService';
