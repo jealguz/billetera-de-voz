@@ -58,32 +58,57 @@ const BalanceCards: React.FC = () => {
   }, [debts]);
 
   const calculateClientBalances = useCallback((): ClientBalance[] => {
+    console.log('🔍 DEBUG: Calculando balances - Total deudas:', debts.length);
+    
+    // Mostrar todas las deudas para debug
+    debts.forEach((debt, i) => {
+      console.log(`${i+1}. ${debt.person} - Tipo: ${debt.type}, Estado: ${debt.status}, Monto: ${debt.amount}, Pagado: ${debt.paidAmount || 0}, Restante: ${debt.amount - (debt.paidAmount || 0)}`);
+    });
+
     const balances = new Map<string, number>();
 
-    // Agregar deudas owed (te deben)
+    // Agregar deudas owed (te deben) - SOLO DEUDAS PENDIENTES
     debts
       .filter(d => d.type === 'owed' && d.status !== 'paid')
       .forEach(d => {
-        const remaining = d.amount - (d.paidAmount || 0);
+        const remaining = Math.max(0, d.amount - (d.paidAmount || 0));
+        console.log(`  ➕ ${d.person}: Agregando deuda que TE DEBE: +${remaining}`);
         balances.set(d.person, (balances.get(d.person) || 0) + remaining);
       });
 
-    // Restar deudas owing (debes)
+    // Restar deudas owing (debes) - SOLO DEUDAS PENDIENTES
     debts
       .filter(d => d.type === 'owing' && d.status !== 'paid')
       .forEach(d => {
-        const remaining = d.amount - (d.paidAmount || 0);
+        const remaining = Math.max(0, d.amount - (d.paidAmount || 0));
+        console.log(`  ➖ ${d.person}: Restando deuda que LE DEBES: -${remaining}`);
         balances.set(d.person, (balances.get(d.person) || 0) - remaining);
       });
 
-    return Array.from(balances.entries())
+    const result = Array.from(balances.entries())
       .map(([name, balance]) => ({ name, balance }))
       .filter(cb => cb.balance !== 0) // Solo mostrar si hay balance
       .sort((a, b) => Math.abs(b.balance) - Math.abs(a.balance)); // Ordenar por monto absoluto
+
+    console.log('📊 DEBUG: Resultados balances:');
+    result.forEach(person => {
+      console.log(`  ${person.name}: Balance neto = ${person.balance > 0 ? '+' : ''}${person.balance}`);
+    });
+
+    return result;
   }, [debts]);
 
   const { totalOwed, totalOwing } = calculateTotals();
   const clientBalances = calculateClientBalances();
+
+  // Calcular totales para el modal - CORREGIDO
+  const totalAFavor = clientBalances
+    .filter(cb => cb.balance > 0)
+    .reduce((sum, cb) => sum + cb.balance, 0);
+    
+  const totalADeber = Math.abs(clientBalances
+    .filter(cb => cb.balance < 0)
+    .reduce((sum, cb) => sum + cb.balance, 0));
 
   const owedToMeCount = debts.filter(d => d.type === 'owed' && d.status !== 'paid').length;
   const owedToOthersCount = debts.filter(d => d.type === 'owing' && d.status !== 'paid').length;
@@ -148,94 +173,107 @@ const BalanceCards: React.FC = () => {
 
       {/* Modal de balances por persona */}
       {showBalancesModal && (
-  <div className="fixed inset-0 z-50 overflow-y-auto">
-    {/* Overlay */}
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
-      onClick={() => setShowBalancesModal(false)}
-    ></div>
-    
-    {/* Modal content - Cambiado para mejor centrado */}
-    <div className="flex min-h-full items-center justify-center p-4 text-center">
-      <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all w-full max-w-md">
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-bold text-white">Balances por persona</h3>
-              <p className="text-indigo-100 text-sm">{clientBalances.length} personas</p>
-            </div>
-            <button
-              onClick={() => setShowBalancesModal(false)}
-              className="text-white hover:text-indigo-200 p-1 rounded-full hover:bg-white/20 transition-colors"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Contenido desplazable - Altura ajustada */}
-        <div className="px-6 py-4 max-h-[calc(80vh-120px)] overflow-y-auto">
-          <div className="space-y-3">
-            {clientBalances.map((cb, index) => (
-              <div 
-                key={index} 
-                className={`flex justify-between items-center p-4 rounded-xl border ${
-                  cb.balance > 0 
-                    ? 'bg-emerald-50 border-emerald-200' 
-                    : 'bg-rose-50 border-rose-200'
-                }`}
-              >
-                <div className="flex-1">
-                  <span className="font-semibold text-gray-800 block">{cb.name}</span>
-                  <span className={`text-sm font-medium ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {cb.balance > 0 ? 'Te debe' : 'Le debes'}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className={`text-xl font-bold ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {cb.balance > 0 ? '+' : ''}{formatCurrency(Math.abs(cb.balance))}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Resumen al final */}
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Total a favor</p>
-                <p className="text-lg font-bold text-blue-700">
-                  {formatCurrency(clientBalances.reduce((sum, cb) => cb.balance > 0 ? sum + cb.balance : sum, 0))}
-                </p>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-lg">
-                <p className="text-sm text-slate-600 font-medium">Total a deber</p>
-                <p className="text-lg font-bold text-slate-700">
-                  {formatCurrency(Math.abs(clientBalances.reduce((sum, cb) => cb.balance < 0 ? sum + cb.balance : sum, 0)))}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Botón de cerrar */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          <button
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Overlay */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
             onClick={() => setShowBalancesModal(false)}
-            className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
-          >
-            Cerrar
-          </button>
+          ></div>
+          
+          {/* Modal content - Cambiado para mejor centrado */}
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <div className="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all w-full max-w-md">
+              
+              {/* Header */}
+              <div className="bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Balances por persona</h3>
+                    <p className="text-indigo-100 text-sm">
+                      {clientBalances.length} persona{clientBalances.length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowBalancesModal(false)}
+                    className="text-white hover:text-indigo-200 p-1 rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Contenido desplazable - Altura ajustada */}
+              <div className="px-6 py-4 max-h-[calc(80vh-120px)] overflow-y-auto">
+                <div className="space-y-3">
+                  {clientBalances.map((cb, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex justify-between items-center p-4 rounded-xl border ${
+                        cb.balance > 0 
+                          ? 'bg-emerald-50 border-emerald-200' 
+                          : 'bg-rose-50 border-rose-200'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-800 block">{cb.name}</span>
+                        <span className={`text-sm font-medium ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {cb.balance > 0 ? 'Te debe' : 'Le debes'}
+                        </span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xl font-bold ${cb.balance > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {cb.balance > 0 ? '+' : ''}{formatCurrency(Math.abs(cb.balance))}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Resumen al final - CORREGIDO */}
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-blue-50 p-3 rounded-lg">
+                      <p className="text-sm text-blue-600 font-medium">Total a favor</p>
+                      <p className="text-lg font-bold text-blue-700">
+                        {formatCurrency(totalAFavor)}
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 p-3 rounded-lg">
+                      <p className="text-sm text-slate-600 font-medium">Total a deber</p>
+                      <p className="text-lg font-bold text-slate-700">
+                        {formatCurrency(totalADeber)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Saldo neto general */}
+                  <div className="mt-3 bg-gradient-to-r from-indigo-50 to-purple-50 p-3 rounded-lg border border-indigo-100">
+                    <p className="text-sm text-indigo-600 font-medium">Saldo neto general</p>
+                    <p className={`text-xl font-bold ${totalAFavor - totalADeber > 0 ? 'text-emerald-600' : totalAFavor - totalADeber < 0 ? 'text-rose-600' : 'text-indigo-700'}`}>
+                      {totalAFavor - totalADeber > 0 ? '+' : ''}{formatCurrency(Math.abs(totalAFavor - totalADeber))}
+                    </p>
+                    <p className="text-xs text-indigo-500 mt-1">
+                      (Te deben {formatCurrency(totalOwed)} - Tú debes {formatCurrency(totalOwing)})
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de cerrar */}
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowBalancesModal(false)}
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200"
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* Modal de resumen original */}
       {showModal && (

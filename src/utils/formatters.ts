@@ -1,6 +1,23 @@
-export const formatCurrency = (amount: number): string => {
-  // Formato simple que dice "X pesos" en lugar de símbolo de moneda
-  return `${amount.toLocaleString('es-ES')} pesos`;
+export const formatCurrency = (amount: number | undefined | null): string => {
+  // Si no hay cantidad o no es un número válido
+  if (amount === undefined || amount === null || isNaN(amount)) {
+    return '0 pesos';
+  }
+  
+  try {
+    // Formatear como pesos colombianos
+    const formatted = new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+    
+    return `${formatted} pesos`;
+    
+  } catch (error) {
+    console.warn('Error formateando moneda, usando formato simple:', amount);
+    // Formato simple como fallback
+    return `${amount.toLocaleString('es-CO')} pesos`;
+  }
 };
 
 export const formatDate = (date: Date): string => {

@@ -409,42 +409,86 @@ class EnhancedVoiceService {
 
   // ============ SÍNTESIS DE VOZ MEJORADA ============
 
-  speak(text: string, options?: Partial<VoiceSettings>): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!('speechSynthesis' in window)) {
-        reject('La síntesis de voz no está disponible en tu navegador');
-        return;
+speak(text: string, options?: Partial<VoiceSettings>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject('La síntesis de voz no está disponible en tu navegador');
+      return;
+    }
+
+    if (this.synth.speaking) {
+      this.synth.cancel();
+    }
+
+    setTimeout(() => {
+      try {
+        const settings = { ...this.currentSettings, ...options };
+        
+        // 🔴 AGREGAR ESTO: Limpiar el texto para voz
+        const cleanText = this.cleanTextForSpeech(text);
+        
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        this.configureVoice(utterance, settings);
+        utterance.rate = settings.rate;
+        utterance.pitch = settings.pitch;
+        utterance.volume = settings.volume;
+
+        utterance.onend = () => {
+          resolve();
+        };
+
+        utterance.onerror = (event) => {
+          reject(new Error(`Error de voz: ${event.error}`));
+        };
+
+        this.synth.speak(utterance);
+
+      } catch (error) {
+        reject(error);
       }
+    }, 100);
+  });
+}
 
-      if (this.synth.speaking) {
-        this.synth.cancel();
-      }
-
-      setTimeout(() => {
-        try {
-          const settings = { ...this.currentSettings, ...options };
-          const utterance = new SpeechSynthesisUtterance(text);
-          this.configureVoice(utterance, settings);
-          utterance.rate = settings.rate;
-          utterance.pitch = settings.pitch;
-          utterance.volume = settings.volume;
-
-          utterance.onend = () => {
-            resolve();
-          };
-
-          utterance.onerror = (event) => {
-            reject(new Error(`Error de voz: ${event.error}`));
-          };
-
-          this.synth.speak(utterance);
-
-        } catch (error) {
-          reject(error);
-        }
-      }, 100);
-    });
+// 🔴 AGREGAR ESTA NUEVA FUNCIÓN PARA LIMPIAR TEXTO
+private cleanTextForSpeech(text: string): string {
+  if (!text) return '';
+  
+  let cleanText = text
+    // 1. Eliminar caracteres de formato Markdown
+    .replace(/\*\*/g, '')      // **negrita**
+    .replace(/\*/g, ' ')       // *cursiva* o • viñetas
+    .replace(/_/g, ' ')        // _cursiva_
+    .replace(/~/g, ' ')        // ~~tachado~~
+    .replace(/#/g, ' ')        // # encabezados
+    
+    // 2. Eliminar emojis comunes que podrían leerse mal
+    .replace(/[🎉🎊✅❌⚠️⚡💡]/g, ' ')
+    .replace(/[💰💳💵💸]/g, ' dinero ')
+    .replace(/[📊📈📉]/g, ' gráfico ')
+    .replace(/[⚖️⚖]/g, ' equilibrio ')
+    .replace(/[📝📋]/g, ' lista ')
+    .replace(/[👤👥]/g, ' persona ')
+    .replace(/[🏢🏪]/g, ' negocio ')
+    
+    // 3. Reemplazar símbolos problemáticos
+    .replace(/•/g, ', ')       // viñetas por comas
+    .replace(/→/g, ' a ')      // flecha por "a"
+    .replace(/:/g, ': ')       // asegurar espacio después de dos puntos
+    
+    // 4. Limpiar múltiples espacios y saltos de línea
+    .replace(/\n{2,}/g, '. ')  // múltiples saltos por puntos
+    .replace(/\n/g, '. ')      // saltos simples por puntos
+    .replace(/\s{2,}/g, ' ')   // múltiples espacios por uno
+    .trim();
+  
+  // 5. Asegurar que termine con punto
+  if (cleanText && !cleanText.endsWith('.') && !cleanText.endsWith('!') && !cleanText.endsWith('?')) {
+    cleanText += '.';
   }
+  
+  return cleanText;
+}
 
   private configureVoice(utterance: SpeechSynthesisUtterance, settings: VoiceSettings): void {
     const voices = this.getAvailableVoices();
@@ -817,15 +861,83 @@ class EnhancedVoiceService {
           success = true;
           break;
 
-        case 'show_summary':
-          // CAMBIADO: Ahora es async/await
-          const [personal, business] = await Promise.all([
-            storageService.getSummary(),
-            storageService.getBusinessSummary()
-          ]);
-          data = { personal, business };
-          success = true;
-          break;
+case 'show_summary':
+  try {
+    // Obtener datos directamente de las deudas
+    const allDebts = await storageService.getDebts();
+    
+    console.log('🔍 DEBUG: Total deudas obtenidas:', allDebts.length);
+    
+    // Mostrar todas las deudas para debug
+    allDebts.forEach((debt, i) => {
+      console.log(`${i+1}. ${debt.person} - Tipo: ${debt.type}, Estado: ${debt.status}, Monto: ${debt.amount}, Pagado: ${debt.paidAmount || 0}`);
+    });
+    
+    // Separar deudas que tú debes (owing) y que te deben (owed)
+    const owing = allDebts
+      .filter(d => d.type === 'owing' && d.status !== 'paid')
+      .map(d => ({
+        person: d.person,
+        amount: Math.max(0, d.amount - (d.paidAmount || 0)),
+        description: d.description || '',
+        date: d.date
+      }));
+    
+    const owed = allDebts
+      .filter(d => d.type === 'owed' && d.status !== 'paid')
+      .map(d => ({
+        person: d.person,
+        amount: Math.max(0, d.amount - (d.paidAmount || 0)),
+        description: d.description || '',
+        date: d.date
+      }));
+    
+    console.log('🔍 DEBUG: Owing (tú debes):', owing.length, 'deudas');
+    console.log('🔍 DEBUG: Owed (te deben):', owed.length, 'deudas');
+    
+    const totalOwing = owing.reduce((sum, d) => sum + d.amount, 0);
+    const totalOwed = owed.reduce((sum, d) => sum + d.amount, 0);
+    const net = totalOwed - totalOwing;
+    
+    // Obtener resúmenes adicionales
+    const [personal, business] = await Promise.all([
+      storageService.getSummary(),
+      storageService.getBusinessSummary()
+    ]);
+    
+    // Estructura que espera generateResponse
+    data = {
+      owing,
+      owed,
+      totalOwing,
+      totalOwed,
+      net,
+      owingCount: owing.length,
+      owedCount: owed.length,
+      totalCount: owing.length + owed.length,
+      // También incluir los datos originales por compatibilidad
+      personal: personal,
+      business: business
+    };
+    
+    console.log('📊 Datos preparados para show_summary:', {
+      totalOwing: formatCurrency(totalOwing),
+      totalOwed: formatCurrency(totalOwed),
+      net: formatCurrency(net),
+      owingCount: owing.length,
+      owedCount: owed.length,
+      owingFirst: owing[0]?.person || 'ninguno',
+      owedFirst: owed[0]?.person || 'ninguno'
+    });
+    
+    success = true;
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo resumen:', error);
+    throw new Error('No pude obtener el resumen de deudas');
+  }
+  break; 
+
 
         case 'query_payment_history':
           data = await this.handlePaymentHistoryQuery(parsed);
