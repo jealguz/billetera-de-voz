@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Mail, Lock, Mic, UserPlus, Download, X, Check, Heart, Eye, EyeOff, Copy, CheckCircle } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
