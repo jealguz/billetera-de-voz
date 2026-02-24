@@ -1,16 +1,17 @@
 import React from 'react';
 import { Mail, User, LogOut } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface UserInfoProps {
   onLogout: () => void;
 }
 
 const UserInfo: React.FC<UserInfoProps> = ({ onLogout }) => {
-  // Obtener usuario del localStorage (de tu userService)
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+  const { state } = useAuth();
+  const currentUser = state.user;
   
   if (!currentUser) {
-    return null; // No mostrar si no hay usuario
+    return null;
   }
 
   return (
@@ -22,12 +23,15 @@ const UserInfo: React.FC<UserInfoProps> = ({ onLogout }) => {
           </div>
           <div>
             <div className="font-medium text-gray-900">
-              {currentUser.name || currentUser.email.split('@')[0]}
+              {currentUser.email.split('@')[0]}
             </div>
             <div className="flex items-center gap-1 text-sm text-gray-500">
               <Mail className="w-4 h-4" />
               {currentUser.email}
             </div>
+            {currentUser.role === 'admin' && (
+              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Admin</span>
+            )}
           </div>
         </div>
         
@@ -39,10 +43,6 @@ const UserInfo: React.FC<UserInfoProps> = ({ onLogout }) => {
           <LogOut className="w-4 h-4" />
           <span className="text-sm font-medium">Salir</span>
         </button>
-      </div>
-      
-      <div className="mt-3 text-xs text-gray-400 border-t pt-3">
-        <p>✨ Usuario: {currentUser.id.substring(0, 8)}...</p>
       </div>
     </div>
   );
