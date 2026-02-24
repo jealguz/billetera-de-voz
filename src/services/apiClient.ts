@@ -1,7 +1,5 @@
 // Simple API client to talk to the backend (PostgreSQL) using fetch
-import { User, Wallet, Transaction, AuthResponse, Client, Debt, Summary } from '../types/api'
-
-type VoidFn = () => void
+import { Wallet, Transaction, AuthResponse, Client, Debt, Summary } from '../types/api'
 
 let authToken: string | null = null
 
