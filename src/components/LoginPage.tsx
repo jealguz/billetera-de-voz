@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown, Eye, EyeOff, Copy, CheckCircle } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -14,11 +14,22 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
   const { isInstallable, installPWA } = usePWAInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [showAdNotice, setShowAdNotice] = useState(true);
   const [showScrollHint, setShowScrollHint] = useState(true);
   const modalContentRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyNequi = () => {
+    navigator.clipboard.writeText('3114411028');
+    setCopied(true);
+    toast.success('¡Número copiado!', {
+      icon: '📋',
+      duration: 2000,
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // ✅ ELIMINADO TODO EL CÓDIGO QUE VERIFICA localStorage
   // El modal sale SIEMPRE al iniciar
@@ -114,7 +125,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
         }}
       />
 
-      {/* ✅ Modal de Anuncios - Se muestra SIEMPRE */}
+      {/* ✅ Modal de Apoyo Voluntario */}
       {showAdNotice && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[1000] animate-fade-in">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-green-300 flex flex-col max-h-[85vh]">
@@ -123,28 +134,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               <div className="w-14 h-14 mx-auto mb-3 bg-white rounded-xl p-3 shadow-lg">
                 <Heart className="w-8 h-8 mx-auto text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-white">Wallet Voice es 100% Gratis</h2>
+              <h2 className="text-xl font-bold text-white">Bienvenido a Wallet Voice</h2>
             </div>
 
-            {/* Contenido con scroll */}
+            {/* Contenido */}
             <div 
               ref={modalContentRef}
               className="flex-1 overflow-y-auto p-5"
               style={{ maxHeight: 'calc(85vh - 180px)' }}
             >
-              {showScrollHint && (
-                <div className="text-center mb-3 animate-bounce">
-                  <div className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs">
-                    <ChevronDown className="w-3 h-3" />
-                    <span>Desliza para ver más</span>
-                  </div>
-                </div>
-              )}
-
               <div className="space-y-4">
                 <div className="text-center">
-                  <p className="text-gray-700 mb-4">
-                    Wallet Voice <span className="font-bold text-green-600">no tiene anuncios</span>. Somos una app de código abierto sin fines de lucro.
+                  <p className="text-gray-700 text-lg">
+                    Esta app <span className="font-bold text-green-600">NO tiene anuncios</span>. 
+                    Es 100% gratis y sin interrupciones.
                   </p>
                 </div>
 
@@ -153,40 +156,46 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-gray-900">Sin anuncios</p>
-                      <p className="text-sm text-gray-600">La app es limpia, sin banners ni interrupciones</p>
+                      <p className="text-sm text-gray-600">Experiencia limpia sin banners</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-900">Totalmente gratis</p>
-                      <p className="text-sm text-gray-600">Todas las funciones están disponibles sin pagar</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-gray-900">Apoyo voluntario</p>
-                      <p className="text-sm text-gray-600">Si quieres ayudar, puedes hacer una donación</p>
+                      <p className="font-medium text-gray-900">100% Gratis</p>
+                      <p className="text-sm text-gray-600">Todas las funciones siempre gratuitas</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 mt-4 border border-green-200">
                   <p className="text-center text-green-800 font-medium mb-3">
-                    💚 ¡Tu apoyo nos ayuda a seguir!
+                    💚 ¿Quieres apoyar voluntariamente?
+                  </p>
+                  <p className="text-sm text-gray-600 text-center mb-4">
+                    Cualquier donación ayuda a mantener la app gratis para todos.
                   </p>
                   
-                  <div className="bg-white rounded-lg p-4 text-center border border-green-100">
+                  <div className="bg-white rounded-lg p-4 text-center border border-green-100 mb-3">
                     <p className="text-sm text-gray-600 mb-2">Número Nequi:</p>
-                    <p className="text-2xl font-bold text-green-600">311 441 1028</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <p className="text-2xl font-bold text-green-600">311 441 1028</p>
+                      <button
+                        onClick={handleCopyNequi}
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        {copied ? <CheckCircle className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                      </button>
+                    </div>
                   </div>
-                  
-                  <p className="text-xs text-center text-gray-500 mt-3">
-                    Cualquier amount ajuda a manter a app gratis
-                  </p>
+
+                  <a
+                    href="nequi://3114411028"
+                    className="block w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity text-center"
+                  >
+                    💜 Abrir Nequi
+                  </a>
                 </div>
               </div>
             </div>
@@ -198,14 +207,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
                   onClick={handleAcceptAds}
                   className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
                 >
-                  ¡Entendido, gracias!
-                </button>
-
-                <button
-                  onClick={handleContinueWithoutSupport}
-                  className="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-50 transition-colors text-sm"
-                >
-                  Entiendo, continuar sin apoyar
+                  ¡Entendido!
                 </button>
               </div>
             </div>

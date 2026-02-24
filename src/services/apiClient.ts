@@ -7,7 +7,7 @@ export function setAuthToken(token: string | null) {
   authToken = token
 }
 
-const API_BASE = process.env.REACT_APP_API_BASE_URL || ''
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://wallet-voice-backend.onrender.com';
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
