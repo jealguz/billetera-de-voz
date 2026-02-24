@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown } from 'lucide-react';
-import { setAuthToken } from '../services/apiClient';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
