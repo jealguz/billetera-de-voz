@@ -5,7 +5,7 @@ import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface LoginPageProps {
-  onLogin: (email?: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
   onSwitchToRegister: () => void;
   onVoiceLogin: () => void;
 }
@@ -51,14 +51,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     try {
-      const res = await api.login(email, password);
-      // Guardar token para futuras llamadas a la API
-      setAuthToken(res.token);
-      toast.success(`¡Bienvenido de vuelta, ${res.user.email}!`);
-      onLogin(email);
-    } catch (error) {
-      setError('Credenciales incorrectas');
+      await onLogin(email, password);
+    } catch (error: any) {
+      setError(error?.message || 'Credenciales incorrectas');
     }
   };
 

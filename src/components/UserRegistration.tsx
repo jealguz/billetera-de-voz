@@ -12,7 +12,7 @@ interface NewUser {
 }
 
 interface UserRegistrationProps {
-  onRegister: (user: NewUser) => void;
+  onRegister: (email: string, password: string) => Promise<void>;
 }
 
 const UserRegistration: React.FC<UserRegistrationProps> = ({ onRegister }) => {
@@ -49,15 +49,15 @@ const UserRegistration: React.FC<UserRegistrationProps> = ({ onRegister }) => {
     setShowVoiceRegistration(true);
   };
 
-  const handleVoiceRegistered = (voiceData: string) => {
+  const handleVoiceRegistered = async (voiceData: string) => {
     if (userData) {
-      onRegister({ ...userData, voiceData });
+      await onRegister(userData.email, userData.password);
     }
   };
 
-  const handleSkipVoice = () => {
+  const handleSkipVoice = async () => {
     if (userData) {
-      onRegister(userData);
+      await onRegister(userData.email, userData.password);
     }
   };
 

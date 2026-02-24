@@ -223,96 +223,22 @@ const Header: React.FC = () => {
     handlePreviewVoice(voice, randomText);
   };
 
-  // FUNCIONES DE BACKUP/EXPORT
+  // FUNCIONES DE BACKUP/EXPORT - YA NO NECESARIO CON DATABASE EN LA NUBE
+  // Los datos ahora se almacenan en el servidor
   const handleExportData = async () => {
-    try {
-      const data = await storageService.exportData();
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `wallet-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      const now = Date.now();
-      localStorage.setItem('lastBackup', now.toString());
-      const date = new Date(now);
-      setLastBackup(date.toLocaleDateString() + ' ' + date.toLocaleTimeString());
-      
-      setShowBackupModal(false);
-      toast.success('✅ Datos exportados correctamente');
-      
-    } catch (error) {
-      console.error('Error exportando datos:', error);
-      toast.error('❌ Error al exportar datos');
-    }
+    toast.success('✅ Tus datos están seguros en la nube');
   };
 
   const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const data = JSON.parse(e.target?.result as string);
-        
-        if (!data.debts && !data.clients && !data.payments) {
-          throw new Error('Archivo de backup inválido');
-        }
-        
-        await storageService.importData(data);
-        
-        setShowBackupModal(false);
-        
-        toast.success('✅ Datos importados correctamente!', {
-          duration: 3000,
-          icon: '✅'
-        });
-        
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-        
-      } catch (error) {
-        console.error('Error al importar datos:', error);
-        toast.error('❌ Error: Archivo de backup inválido o corrupto', {
-          duration: 4000
-        });
-      }
-    };
-    reader.readAsText(file);
+    toast.success('✅ Tus datos están seguros en la nube');
   };
 
-  // FUNCIONES DE RESET
+  // FUNCIONES DE RESET - Ya no aplican con DB en la nube
   const handleResetConfirm = async () => {
-    if (!resetType) return;
-    
-    setIsResetting(true);
-    try {
-      if (resetType === 'debts') {
-        await storageService.resetDebts();
-        toast.success('✅ Todas las deudas han sido eliminadas');
-      } else if (resetType === 'payments') {
-        await storageService.resetPayments();
-        toast.success('✅ Todos los pagos han sido reseteados');
-      } else if (resetType === 'all') {
-        await storageService.resetAll();
-        toast.success('✅ Todos los datos han sido eliminados');
-      }
-    } catch (error) {
-      console.error('Error al resetear datos:', error);
-      toast.error('❌ Error al eliminar datos');
-    } finally {
-      setIsResetting(false);
-      setShowResetModal(false);
-      setResetType(null);
-      setConfirmStep(1);
-    }
+    toast.error('Para eliminar datos contacta al administrador');
+    setShowResetModal(false);
+    setResetType(null);
+    setConfirmStep(1);
   };
 
   const handleResetCancel = () => {
