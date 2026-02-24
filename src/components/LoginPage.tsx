@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown, Eye, EyeOff, Copy, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Mic, UserPlus, Download, X, Check, Heart, Eye, EyeOff, Copy, CheckCircle } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -18,7 +18,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   const { isInstallable, installPWA } = usePWAInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
   const [showAdNotice, setShowAdNotice] = useState(true);
-  const [showScrollHint, setShowScrollHint] = useState(true);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
   const handleCopyNequi = () => {
@@ -30,35 +29,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
     });
     setTimeout(() => setCopied(false), 2000);
   };
-
-  // ✅ ELIMINADO TODO EL CÓDIGO QUE VERIFICA localStorage
-  // El modal sale SIEMPRE al iniciar
-  
-  // Ocultar hint de scroll
-  useEffect(() => {
-    if (showAdNotice && showScrollHint) {
-      const timer = setTimeout(() => {
-        setShowScrollHint(false);
-      }, 3000);
-
-      const contentElement = modalContentRef.current;
-      const handleScroll = () => {
-        if (contentElement && contentElement.scrollTop > 50) {
-          setShowScrollHint(false);
-        }
-      };
-
-      if (contentElement) {
-        contentElement.addEventListener('scroll', handleScroll);
-        return () => {
-          clearTimeout(timer);
-          contentElement.removeEventListener('scroll', handleScroll);
-        };
-      }
-
-      return () => clearTimeout(timer);
-    }
-  }, [showAdNotice, showScrollHint]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,19 +57,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
       icon: '❤️',
       style: {
         background: '#10B981',
-        color: '#fff',
-      },
-    });
-  };
-
-  const handleContinueWithoutSupport = () => {
-    setShowAdNotice(false);
-    
-    toast('¡Gracias! Wallet Voice siempre será gratis', {
-      duration: 3000,
-      icon: 'ℹ️',
-      style: {
-        background: '#3B82F6',
         color: '#fff',
       },
     });
