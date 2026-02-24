@@ -2,6 +2,7 @@ import { toast } from 'react-hot-toast';
 import { Routes, Route } from 'react-router-dom';
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { VoiceProvider } from './context/VoiceContext';
+import { AuthProvider } from './context/AuthContext';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -17,6 +18,7 @@ const WalletsPage = lazy(() => import('./pages/WalletsPage'));
 const DebtsPage = lazy(() => import('./pages/DebtsPage'));
 const AddDebtPage = lazy(() => import('./pages/AddDebtPage'));
 const BusinessPage = lazy(() => import('./pages/BusinessPage'));
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<'login' | 'register' | 'voiceLogin' | 'app'>('login');
@@ -149,6 +151,7 @@ function AppContent() {
           <Route path="/wallets" element={<WalletsPage />} />
           <Route path="/business" element={<BusinessPage />} />
           <Route path="/summary" element={<BusinessPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </Suspense>
     </main>
@@ -161,7 +164,11 @@ function AppContent() {
 }
 
 function App() {
-  return <AppContent />;
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
 }
 
 export default App;

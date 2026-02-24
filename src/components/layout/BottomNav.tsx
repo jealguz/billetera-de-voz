@@ -1,22 +1,26 @@
 import React, { useState } from 'react';
-import { Home, ListPlus, Mic, Building2 } from 'lucide-react';
+import { Home, ListPlus, Mic, Building2, Settings } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVoice } from '../../hooks/useVoice';
+import { useAuth } from '../../context/AuthContext';
 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isListening, startListening, stopListening } = useVoice();
+  const { state } = useAuth();
   const [showFeedback, setShowFeedback] = useState(false);
 
   const getCurrentPage = () => {
     if (location.pathname === '/') return 'home';
     if (location.pathname === '/debts') return 'debts';
     if (location.pathname === '/business') return 'business';
+    if (location.pathname === '/admin') return 'admin';
     return 'home';
   };
 
   const currentPage = getCurrentPage();
+  const isAdmin = state.user?.role === 'admin';
 
   const handleNavigate = (path: string) => {
     navigate(path);
@@ -94,6 +98,20 @@ const BottomNav: React.FC = () => {
           <ListPlus size={24} />
           <span className="text-xs mt-1">Deudas</span>
         </button>
+
+        {isAdmin && (
+          <button
+            onClick={() => handleNavigate('/admin')}
+            className={`flex flex-col items-center p-2 transition-colors ${
+              currentPage === 'admin' 
+                ? 'text-purple-600' 
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Settings size={24} />
+            <span className="text-xs mt-1">Admin</span>
+          </button>
+        )}
       </div>
     </nav>
   );

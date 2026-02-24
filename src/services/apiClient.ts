@@ -1,5 +1,5 @@
 // Simple API client to talk to the backend (PostgreSQL) using fetch
-import { Wallet, Transaction, AuthResponse, Client, Debt, Summary } from '../types/api'
+import { Wallet, Transaction, AuthResponse, Client, Debt, Summary, AdminUser } from '../types/api'
 
 let authToken: string | null = null
 
@@ -107,6 +107,21 @@ export const api = {
   getSummary: async (): Promise<Summary> => {
     const res = await request<{ summary: Summary }>('/summary')
     return res.summary
+  },
+  // Users (admin)
+  changePassword: async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
+    return await request<{ success: boolean; message: string }>('/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword })
+    })
+  },
+  getAllUsers: async (): Promise<AdminUser[]> => {
+    const res = await request<{ users: AdminUser[] }>('/users')
+    return res.users
+  },
+  getUserCount: async (): Promise<number> => {
+    const res = await request<{ count: number }>('/users/count')
+    return res.count
   }
 }
 
