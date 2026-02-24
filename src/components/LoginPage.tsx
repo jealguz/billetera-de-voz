@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown } from 'lucide-react';
+import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown, Eye, EyeOff } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -12,10 +12,11 @@ interface LoginPageProps {
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVoiceLogin }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { isInstallable, installPWA } = usePWAInstall();
   const [showInstallBanner, setShowInstallBanner] = useState(true);
-  const [showAdNotice, setShowAdNotice] = useState(true); // ✅ CAMBIADO: Empieza en TRUE
+  const [showAdNotice, setShowAdNotice] = useState(true);
   const [showScrollHint, setShowScrollHint] = useState(true);
   const modalContentRef = useRef<HTMLDivElement>(null);
 
@@ -68,10 +69,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   };
 
   const handleAcceptAds = () => {
-    // ✅ NO guardamos en localStorage para que salga SIEMPRE
     setShowAdNotice(false);
     
-    toast.success('¡Gracias por apoyar Wallet Voice! 🎉', {
+    toast.success('¡Gracias por usar Wallet Voice! 🎉', {
       duration: 4000,
       icon: '❤️',
       style: {
@@ -82,10 +82,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
   };
 
   const handleContinueWithoutSupport = () => {
-    // ✅ NO guardamos en localStorage para que salga SIEMPRE
     setShowAdNotice(false);
     
-    toast('Puedes cambiar tu decisión en cualquier momento en Configuración', {
+    toast('¡Gracias! Wallet Voice siempre será gratis', {
       duration: 3000,
       icon: 'ℹ️',
       style: {
@@ -118,13 +117,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
       {/* ✅ Modal de Anuncios - Se muestra SIEMPRE */}
       {showAdNotice && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-[1000] animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-blue-300 flex flex-col max-h-[85vh]">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full border-2 border-green-300 flex flex-col max-h-[85vh]">
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-5 rounded-t-2xl text-center flex-shrink-0">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-5 rounded-t-2xl text-center flex-shrink-0">
               <div className="w-14 h-14 mx-auto mb-3 bg-white rounded-xl p-3 shadow-lg">
-                <AlertCircle className="w-8 h-8 mx-auto text-blue-600" />
+                <Heart className="w-8 h-8 mx-auto text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-white">Información sobre anuncios</h2>
+              <h2 className="text-xl font-bold text-white">Wallet Voice es 100% Gratis</h2>
             </div>
 
             {/* Contenido con scroll */}
@@ -135,7 +134,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
             >
               {showScrollHint && (
                 <div className="text-center mb-3 animate-bounce">
-                  <div className="inline-flex items-center gap-1 text-blue-600 bg-blue-50 px-3 py-1 rounded-full text-xs">
+                  <div className="inline-flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-xs">
                     <ChevronDown className="w-3 h-3" />
                     <span>Desliza para ver más</span>
                   </div>
@@ -145,7 +144,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               <div className="space-y-4">
                 <div className="text-center">
                   <p className="text-gray-700 mb-4">
-                    Para mantener <span className="font-bold text-blue-600">Wallet Voice completamente gratuita</span>, mostramos anuncios no intrusivos.
+                    Wallet Voice <span className="font-bold text-green-600">no tiene anuncios</span>. Somos una app de código abierto sin fines de lucro.
                   </p>
                 </div>
 
@@ -153,16 +152,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
                   <div className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-900">Sin costos ocultos</p>
-                      <p className="text-sm text-gray-600">Nunca pagarás por funciones básicas</p>
+                      <p className="font-medium text-gray-900">Sin anuncios</p>
+                      <p className="text-sm text-gray-600">La app es limpia, sin banners ni interrupciones</p>
                     </div>
                   </div>
 
                   <div className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-gray-900">Anuncios discretos</p>
-                      <p className="text-sm text-gray-600">Solo banners que no interrumpen tu experiencia</p>
+                      <p className="font-medium text-gray-900">Totalmente gratis</p>
+                      <p className="text-sm text-gray-600">Todas las funciones están disponibles sin pagar</p>
                     </div>
                   </div>
 
@@ -170,15 +169,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
                     <Check className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <p className="font-medium text-gray-900">Apoyo voluntario</p>
-                      <p className="text-sm text-gray-600">Puedes ver anuncios adicionales para apoyarnos</p>
+                      <p className="text-sm text-gray-600">Si quieres ayudar, puedes hacer una donación</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                  <p className="text-center text-blue-800 text-sm">
-                    <Heart className="w-4 h-4 inline mr-1 text-red-500" />
-                    ¡Tu apoyo nos ayuda a seguir mejorando!
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-5 mt-4 border border-green-200">
+                  <p className="text-center text-green-800 font-medium mb-3">
+                    💚 ¡Tu apoyo nos ayuda a seguir!
+                  </p>
+                  
+                  <div className="bg-white rounded-lg p-4 text-center border border-green-100">
+                    <p className="text-sm text-gray-600 mb-2">Número Nequi:</p>
+                    <p className="text-2xl font-bold text-green-600">311 441 1028</p>
+                  </div>
+                  
+                  <p className="text-xs text-center text-gray-500 mt-3">
+                    Cualquier amount ajuda a manter a app gratis
                   </p>
                 </div>
               </div>
@@ -189,9 +196,9 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
               <div className="space-y-3">
                 <button
                   onClick={handleAcceptAds}
-                  className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
+                  className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
                 >
-                  ¡Entiendo y quiero apoyar!
+                  ¡Entendido, gracias!
                 </button>
 
                 <button
@@ -285,13 +292,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-gray-50 focus:bg-white"
+                className="w-full pl-12 pr-12 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 bg-gray-50 focus:bg-white"
                 placeholder="Tu contraseña"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -337,16 +351,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
           </button>
         </div>
 
-        {/* Información sobre anuncios */}
+        {/* Información sobre apoyo voluntario */}
         <div className="mt-6 pt-4 border-t border-gray-100">
           <p className="text-xs text-gray-500 text-center">
             <Heart className="w-3 h-3 inline mr-1 text-red-500" />
-            Wallet Voice es gratuita gracias a los anuncios. 
+            Wallet Voice es 100% gratis. 
             <button 
               onClick={() => setShowAdNotice(true)}
-              className="text-blue-600 hover:text-blue-800 ml-1 font-medium"
+              className="text-green-600 hover:text-green-800 ml-1 font-medium"
             >
-              Más información
+              Ver Nequi
             </button>
           </p>
         </div>
