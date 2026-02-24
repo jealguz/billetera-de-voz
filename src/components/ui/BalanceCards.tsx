@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '../../utils/formatters';
 import { Debt as ApiDebt } from '../../types/api';
 import api from '../../services/apiClient';
@@ -39,8 +39,6 @@ const BalanceCards: React.FC = () => {
   const totalPaid = debts
     .filter(d => d.isPaid)
     .reduce((sum, d) => sum + Number(d.amount), 0);
-
-  const { totalOwed: totalOwing } = { totalOwed: 0 };
 
   if (loading) {
     return (

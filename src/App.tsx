@@ -19,9 +19,8 @@ const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 
 function AppContent() {
-  const { state, login, register, logout } = useAuth();
+  const { state, login, register } = useAuth();
   const [currentView, setCurrentView] = useState<'login' | 'register' | 'voiceLogin' | 'app'>('login');
-  const [voiceVerified, setVoiceVerified] = useState(true);
 
   useEffect(() => {
     if (state.user) {

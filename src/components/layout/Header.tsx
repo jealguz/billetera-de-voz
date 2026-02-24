@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, LogOut, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings, Menu, X } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
-import { storageService } from '../../services/databaseService';
 import { enhancedVoiceService, VoiceInfo, VoicePersonality, VoiceSettings } from '../../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
 
@@ -22,7 +21,7 @@ const Header: React.FC = () => {
   const [previewText, setPreviewText] = useState<string>('Hola, soy tu asistente de voz. ¿Te gusta cómo sueno?');
   const [showPreviewOptions, setShowPreviewOptions] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
-  const [isResetting, setIsResetting] = useState(false);
+  const [isResetting] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Estado para menú móvil
   
@@ -238,13 +237,11 @@ const Header: React.FC = () => {
     toast.error('Para eliminar datos contacta al administrador');
     setShowResetModal(false);
     setResetType(null);
-    setConfirmStep(1);
   };
 
   const handleResetCancel = () => {
     setShowResetModal(false);
     setResetType(null);
-    setConfirmStep(1);
   };
 
   const handleLogout = () => {
