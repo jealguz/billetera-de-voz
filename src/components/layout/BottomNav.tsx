@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Home, ListPlus, Mic } from 'lucide-react';
+import { Home, ListPlus, Mic, Building2 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useVoice } from '../../hooks/useVoice';
 
@@ -12,6 +12,7 @@ const BottomNav: React.FC = () => {
   const getCurrentPage = () => {
     if (location.pathname === '/') return 'home';
     if (location.pathname === '/debts') return 'debts';
+    if (location.pathname === '/business') return 'business';
     return 'home';
   };
 
@@ -46,6 +47,18 @@ const BottomNav: React.FC = () => {
         >
           <Home size={24} />
           <span className="text-xs mt-1">Inicio</span>
+        </button>
+        
+        <button
+          onClick={() => handleNavigate('/business')}
+          className={`flex flex-col items-center p-2 transition-colors ${
+            currentPage === 'business' 
+              ? 'text-blue-600' 
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Building2 size={24} />
+          <span className="text-xs mt-1">Negocio</span>
         </button>
         
         <button

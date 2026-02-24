@@ -66,22 +66,19 @@
       "name": "Agregar deuda por voz",
       "short_name": "Voz",
       "description": "Agregar deuda usando comando de voz",
-      "url": "/?voice=true",
-      "icons": [{ "src": "/icons/mic-192.png", "sizes": "192x192" }]
+      "url": "/?voice=true"
     },
     {
-      "name": "Consultar deudas",
+      "name": "Consultar deudas", 
       "short_name": "Consultar", 
       "description": "Ver todas las deudas",
-      "url": "/debts",
-      "icons": [{ "src": "/icons/list-192.png", "sizes": "192x192" }]
+      "url": "/debts"
     },
     {
       "name": "Resumen general",
       "short_name": "Resumen",
       "description": "Ver resumen de deudas",
-      "url": "/summary",
-      "icons": [{ "src": "/icons/chart-192.png", "sizes": "192x192" }]
+      "url": "/summary"
     }
   ],
   

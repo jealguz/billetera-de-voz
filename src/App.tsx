@@ -13,8 +13,10 @@ import { userService } from './services/userService';
 
 // Lazy load pages
 const HomePage = lazy(() => import('./pages/HomePage'));
+const WalletsPage = lazy(() => import('./pages/WalletsPage'));
 const DebtsPage = lazy(() => import('./pages/DebtsPage'));
 const AddDebtPage = lazy(() => import('./pages/AddDebtPage'));
+const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 
 function AppContent() {
   const [currentView, setCurrentView] = useState<'login' | 'register' | 'voiceLogin' | 'app'>('login');
@@ -55,8 +57,13 @@ function AppContent() {
     }
   };
 
-  const handleLogin = () => {
-    setUser(userService.getCurrentUser());
+  const handleLogin = (email?: string) => {
+    if (email) {
+      // Minimal user proxy for API-based login flow
+      setUser({ id: 'api', email, name: email } as any);
+    } else {
+      setUser(userService.getCurrentUser());
+    }
     setCurrentView('app');
   };
 
@@ -139,6 +146,9 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/debts" element={<DebtsPage />} />
           <Route path="/add-debt" element={<AddDebtPage />} />
+          <Route path="/wallets" element={<WalletsPage />} />
+          <Route path="/business" element={<BusinessPage />} />
+          <Route path="/summary" element={<BusinessPage />} />
         </Routes>
       </Suspense>
     </main>

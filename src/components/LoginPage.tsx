@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail, Lock, Mic, UserPlus, Download, X, AlertCircle, Check, Heart, ChevronDown } from 'lucide-react';
-import { userService } from '../services/userService';
+import api, { setAuthToken } from '../services/apiClient';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface LoginPageProps {
-  onLogin: () => void;
+  onLogin: (email?: string) => void;
   onSwitchToRegister: () => void;
   onVoiceLogin: () => void;
 }
@@ -49,18 +49,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin, onSwitchToRegister, onVo
     }
   }, [showAdNotice, showScrollHint]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = userService.loginUser(email, password);
-      if (user) {
-        toast.success(`¡Bienvenido de vuelta, ${user.name}!`);
-        onLogin();
-      } else {
-        setError('Credenciales incorrectas');
-      }
+      const res = await api.login(email, password);
+      // Guardar token para futuras llamadas a la API
+      setAuthToken(res.token);
+      toast.success(`¡Bienvenido de vuelta, ${res.user.email}!`);
+      onLogin(email);
     } catch (error) {
-      setError('Error al iniciar sesión');
+      setError('Credenciales incorrectas');
     }
   };
 
