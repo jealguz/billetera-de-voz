@@ -948,28 +948,35 @@ private intentKeywords = {
       console.log('👤 Buscando persona en:', text);
       const lowerText = text.toLowerCase();
 
-      // ============ REGLA PRINCIPAL: SI TIENE IDENTIFICADOR INFORMAL, GUARDAR COMPLETO ============
-
+      // ============ REGLA 1: SI TIENE IDENTIFICADOR INFORMAL, GUARDAR COMPLETO ============
       // Buscar patrones como "José carnicería", "María panadería", etc.
       const words = lowerText.split(/\s+/);
       for (let i = 0; i < words.length - 1; i++) {
         const currentWord = words[i];
         const nextWord = words[i + 1];
 
-        // Si la palabra actual es un nombre común y la siguiente es un identificador informal
+        // Si la palabra actual es un nombre común
         if (this.isCommonFirstName(currentWord)) {
+          // Siempre guardar las primeras 2 palabras como nombre completo
+          // ya sea "José carnicería" o "María Camargo"
+          const fullName = `${currentWord} ${nextWord}`;
           const informalType = this.detectInformalType(nextWord);
+          
+          console.log(`👤 Detectado: ${fullName} (identificador: ${informalType || 'nombre/apellido'})`);
+          const normalized = this.normalizePersonName(fullName);
+          return normalized;
+        }
+      }
 
-          // ✅ IMPORTANTE: Si es un identificador informal, GUARDAR COMPLETO
-          if (informalType) {
-            // GUARDAR NOMBRE COMPLETO CON IDENTIFICADOR
-            const fullName = `${currentWord} ${nextWord}`;
-            console.log(`👤 ✅✅✅ DETECTADO NOMBRE CON IDENTIFICADOR: ${fullName} (tipo: ${informalType})`);
-            console.log(`👤 ✅ DECISIÓN: Se guardará COMPLETO como: ${this.capitalizeFullName(fullName)}`);
-            const normalized = this.normalizePersonName(fullName);
-            console.log(`👤 ✅ NORMALIZADO: ${normalized}`);
-            return normalized;
-          }
+      // ============ REGLA 2: BUSCAR NOMBRE COMPLETO DE 2 PALABRAS ============
+      // Buscar dos palabras donde la primera sea un nombre común
+      for (let i = 0; i < words.length - 1; i++) {
+        const twoWords = words.slice(i, i + 2).join(' ');
+        // Verificar si la primera palabra es un nombre común
+        if (this.isCommonFirstName(words[i])) {
+          console.log(`👤 Nombre completo encontrado: ${twoWords}`);
+          const normalized = this.normalizePersonName(twoWords);
+          return normalized;
         }
       }
 
@@ -1190,12 +1197,24 @@ private intentKeywords = {
   // ✅ NUEVO: Verificar si parece un nombre
   private looksLikeName(text: string): boolean {
     const words = text.toLowerCase().split(' ');
-    if (words.length !== 2) return false;
-
-    return (
-      (this.isCommonFirstName(words[0]) || this.isCommonLastName(words[0])) &&
-      (this.isCommonFirstName(words[1]) || this.isCommonLastName(words[1]))
-    );
+    
+    // Si tiene 2 palabras, verificar que la primera sea un nombre común
+    if (words.length === 2) {
+      // La primera palabra debe ser un nombre o apellido común
+      if (this.isCommonFirstName(words[0]) || this.isCommonLastName(words[0])) {
+        // La segunda palabra puede ser cualquier cosa (nombre, apellido, o identificador)
+        return true;
+      }
+    }
+    
+    // Si tiene 3 palabras, similar lógica
+    if (words.length === 3) {
+      if (this.isCommonFirstName(words[0]) || this.isCommonLastName(words[0])) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 
   private isCommonLastName(word: string): boolean {
