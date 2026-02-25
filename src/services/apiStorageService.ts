@@ -18,16 +18,17 @@ export const storageService = {
       return debts.map((d: any) => ({
         id: d.id,
         type: 'owed',
-        person: d.clientName || d.client?.name || 'Cliente',
-        clientName: d.clientName || 'Cliente sin nombre',
-        clientId: d.clientId,
+        // PostgreSQL puede devolver nombres de columnas en minúsculas
+        person: d.clientname || d.clientName || d.client?.name || 'Cliente',
+        clientName: d.clientname || d.clientName || d.client?.name || 'Cliente sin nombre',
+        clientId: d.clientid || d.clientId,
         amount: Number(d.amount),
-        paidAmount: Number(d.paidAmount || 0),
+        paidAmount: Number(d.paidamount || d.paidAmount || 0),
         description: d.description || '',
-        date: d.createdAt,
-        status: d.isPaid ? 'paid' : 'pending',
-        createdAt: d.createdAt,
-        updatedAt: d.updatedAt
+        date: d.createdat || d.createdAt,
+        status: d.ispaid || d.isPaid ? 'paid' : 'pending',
+        createdAt: d.createdat || d.createdAt,
+        updatedAt: d.updatedat || d.updatedAt
       }));
     } catch (error) {
       console.error('Error getting debts:', error);
@@ -107,13 +108,22 @@ export const storageService = {
     try {
       const clients = await api.getClients();
       console.log('🔍 getClientByName - clientes obtenidos:', JSON.stringify(clients, null, 2));
-      const normalizedName = name.toLowerCase().trim();
-      console.log('🔍 getClientByName - nombre buscado:', normalizedName);
+      
+      // Normalizar el nombre de búsqueda (quitar tildes)
+      const normalizedSearch = name.toLowerCase().trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      
+      console.log('🔍 getClientByName - nombre buscado (normalizado):', normalizedSearch);
       
       const client = clients.find((c: any) => {
-        const clientName = c.name.toLowerCase();
+        // Normalizar el nombre del cliente
+        const clientName = c.name.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        
         console.log('🔍 getClientByName - comparando con:', clientName);
-        return clientName === normalizedName || clientName.includes(normalizedName);
+        return clientName === normalizedSearch || clientName.includes(normalizedSearch);
       });
 
       console.log('🔍 getClientByName - cliente encontrado:', client);
