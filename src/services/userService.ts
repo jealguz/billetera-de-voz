@@ -86,41 +86,52 @@ export const userService = {
   },
 
   loginByVoice(voiceData: string): User | null {
+    console.log('🔍 Login por voz iniciado con:', voiceData);
+    
+    // Primero buscar en localStorage (usuarios con voz registrada)
     const users = this.getUsers();
     const normalizedVoice = this.normalizeVoiceData(voiceData);
-    console.log('🔍 Buscando usuario por voz:', normalizedVoice);
+    console.log('🔍 Normalizado:', normalizedVoice);
+    console.log('🔍 Usuarios en localStorage:', users.length);
 
     let bestMatch: User | null = null;
     let bestScore = 0;
 
     for (const user of users) {
+      console.log('🔍 Verificando usuario:', user.name, 'voiceData:', user.voiceData);
       if (!user.voiceData) continue;
 
       const storedVoice = this.normalizeVoiceData(user.voiceData);
-      console.log('Comparando con:', storedVoice);
+      console.log('🔍 Comparando con:', storedVoice);
 
       // Exact match gets highest score
       if (storedVoice === normalizedVoice) {
         bestMatch = user;
         bestScore = 1;
+        console.log('✅ Coincidencia exacta encontrada:', user.name);
         break; // Exact match, no need to check others
       }
 
       // Partial match scoring
       const score = this.calculateVoiceMatchScore(normalizedVoice, storedVoice);
+      console.log('🔍 Score:', score);
       if (score > bestScore && score > 0.7) { // Threshold for acceptable match
         bestMatch = user;
         bestScore = score;
+        console.log('✅ Coincidencia parcial:', user.name, 'score:', score);
       }
     }
 
-    console.log('✅ Usuario encontrado:', bestMatch?.name, 'con score:', bestScore);
+    console.log('✅ Mejor coincidencia:', bestMatch?.name, 'con score:', bestScore);
 
     if (bestMatch) {
       this.setCurrentUser(bestMatch.id);
+      return bestMatch;
     }
 
-    return bestMatch;
+    // Si no encuentra en localStorage, mostrar mensaje de error
+    console.log('❌ No se encontró usuario con esa voz');
+    return null;
   },
 
   normalizeVoiceData(voiceData: string): string {
