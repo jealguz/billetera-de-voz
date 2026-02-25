@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, LogOut, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings, Menu, X } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
-import { api } from '../../services/apiClient';
+import { api, setAuthToken } from '../../services/apiClient';
 import { enhancedVoiceService, VoiceInfo, VoicePersonality, VoiceSettings } from '../../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
 
@@ -324,7 +324,8 @@ const Header: React.FC = () => {
 
   const handleLogout = () => {
     userService.logout();
-    window.location.reload();
+    setAuthToken(null);
+    window.location.href = '/login';
   };
 
   const handleVoiceSelect = async (voice: VoiceInfo) => {
