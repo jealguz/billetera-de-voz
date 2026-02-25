@@ -1113,23 +1113,34 @@ private intentKeywords = {
         }
       }
 
-      // ============ FALLBACK: BUSCAR NOMBRE SIMPLE ============
+      // ============ FALLBACK: BUSCAR NOMBRE COMPLETO PRIMERO ============
 
+      // Primero: buscar dos palabras que parezcan nombre (prioridad más alta)
+      for (let i = 0; i < words.length - 1; i++) {
+        const twoWords = words.slice(i, i + 2).join(' ');
+        if (this.looksLikeName(twoWords)) {
+          console.log(`👤 Nombre completo encontrado: ${twoWords}`);
+          const normalized = this.normalizePersonName(twoWords);
+          return normalized;
+        }
+      }
+
+      // Segundo: buscar tres palabras que parezcan nombre
+      for (let i = 0; i < words.length - 2; i++) {
+        const threeWords = words.slice(i, i + 3).join(' ');
+        if (this.looksLikeName(threeWords)) {
+          console.log(`👤 Nombre completo encontrado (3 palabras): ${threeWords}`);
+          const normalized = this.normalizePersonName(threeWords);
+          return normalized;
+        }
+      }
+
+      // Tercero: solo si no hay nombre completo, buscar nombre simple
       // Buscar cualquier nombre común en el texto
       for (const word of words) {
         if (this.isCommonFirstName(word) && word.length > 2) {
           console.log(`👤 ✅ Encontrado nombre simple: ${word}`);
           const normalized = this.normalizePersonName(word);
-          return normalized;
-        }
-      }
-
-      // Último recurso: buscar dos palabras que parezcan nombre
-      for (let i = 0; i < words.length - 1; i++) {
-        const twoWords = words.slice(i, i + 2).join(' ');
-        if (this.looksLikeName(twoWords)) {
-          console.log(`👤 Parece nombre: ${twoWords}`);
-          const normalized = this.normalizePersonName(twoWords);
           return normalized;
         }
       }

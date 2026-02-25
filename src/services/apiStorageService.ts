@@ -104,9 +104,10 @@ export const storageService = {
     }
   },
 
-  async getClientByName(name: string) {
+  async getClientByName(name: string, checkDebts: boolean = false) {
     try {
       const clients = await api.getClients();
+      const debts = await api.getDebts();
       console.log('🔍 getClientByName - clientes obtenidos:', JSON.stringify(clients, null, 2));
       
       // Normalizar el nombre de búsqueda (quitar tildes)
@@ -115,6 +116,7 @@ export const storageService = {
         .replace(/[\u0300-\u036f]/g, '');
       
       console.log('🔍 getClientByName - nombre buscado (normalizado):', normalizedSearch);
+      console.log('🔍 getClientByName - checkDebts:', checkDebts);
       
       // Si el nombre tiene más de una palabra, buscar coincidencia exacta primero
       const searchWords = normalizedSearch.split(' ').filter(w => w.length > 1);
@@ -137,14 +139,51 @@ export const storageService = {
         };
       }
       
-      // Si no hay coincidencia exacta, buscar por todas las palabras del nombre
+      // Si checkDebts es true, priorizar clientes que tienen deudas pendientes
+      if (checkDebts) {
+        const clientsWithDebts = clients.filter((c: any) => 
+          debts.some((d: any) => d.clientid === c.id && !d.ispaid)
+        );
+        console.log('🔍 getClientByName - clientes con deudas:', clientsWithDebts.map((c: any) => c.name));
+        
+        // Buscar primero en clientes con deudas
+        client = clientsWithDebts.find((c: any) => {
+          const clientName = c.name.toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '');
+          
+          if (searchWords.length > 1) {
+            // Si hay múltiples palabras, buscar que TODAS estén presentes
+            return searchWords.every(word => clientName.includes(word));
+          } else {
+            // Si hay una sola palabra, buscar que contenga esa palabra
+            return clientName.includes(normalizedSearch);
+          }
+        });
+        
+        if (client) {
+          console.log('🔍 getClientByName - cliente con deuda encontrado:', client.name);
+          return {
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            email: client.email
+          };
+        }
+      }
+      
+      // Si no hay coincidencia exacta o no se usaron deudas, buscar por todas las palabras del nombre
       client = clients.find((c: any) => {
         const clientName = c.name.toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
         
         // Verificar que TODAS las palabras del nombre buscado estén en el nombre del cliente
-        return searchWords.every(word => clientName.includes(word));
+        if (searchWords.length > 1) {
+          return searchWords.every(word => clientName.includes(word));
+        } else {
+          return clientName.includes(normalizedSearch);
+        }
       });
 
       console.log('🔍 getClientByName - cliente encontrado (búsqueda por palabras):', client);
@@ -163,8 +202,8 @@ export const storageService = {
     }
   },
 
-  async checkClientExists(name: string): Promise<boolean> {
-    const client = await this.getClientByName(name);
+  async checkClientExists(name: string, checkDebts: boolean = false): Promise<boolean> {
+    const client = await this.getClientByName(name, checkDebts);
     return client !== null;
   },
 

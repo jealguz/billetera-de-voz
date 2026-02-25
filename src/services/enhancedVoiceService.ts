@@ -834,8 +834,11 @@ private cleanTextForSpeech(text: string): string {
       if ((parsed.intent === 'add_debt' || parsed.intent === 'add_payment') && parsed.entities.person && parsed.entities.amount) {
         console.log('🔍 Verificando confirmación para:', parsed.entities.person, 'monto:', parsed.entities.amount);
 
+        // Para pagos, verificar también si el cliente tiene deudas pendientes
+        const isPayment = parsed.intent === 'add_payment';
+        
         // CAMBIADO: Ahora es async/await
-        const clientExists = await this.checkClientExists(parsed.entities.person);
+        const clientExists = await this.checkClientExists(parsed.entities.person, isPayment);
         console.log('🔍 Cliente existe:', clientExists);
 
         if (!clientExists) {
@@ -1020,18 +1023,18 @@ case 'show_summary':
 
   // ============ MANEJADORES DE ACCIONES ============
 
-  private async checkClientExists(name: string): Promise<boolean> {
+  private async checkClientExists(name: string, checkDebts: boolean = false): Promise<boolean> {
     try {
-      return await storageService.checkClientExists(name);
+      return await storageService.checkClientExists(name, checkDebts);
     } catch (error) {
       console.error('Error checking client exists:', error);
       return false;
     }
   }
 
-  private async getClientByName(name: string): Promise<any> {
+  private async getClientByName(name: string, checkDebts: boolean = false): Promise<any> {
     try {
-      return await storageService.getClientByName(name);
+      return await storageService.getClientByName(name, checkDebts);
     } catch (error) {
       console.error('Error getting client by name:', error);
       return null;
@@ -1093,8 +1096,8 @@ case 'show_summary':
     }
 
     try {
-      // Buscar cliente
-      const client = await this.getClientByName(person);
+      // Buscar cliente (priorizar los que tienen deudas pendientes)
+      const client = await this.getClientByName(person, true);
       
       if (!client) {
         throw new Error(`${person} no está registrado como cliente`);
