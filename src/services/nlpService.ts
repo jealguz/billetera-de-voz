@@ -1630,186 +1630,7 @@ private intentKeywords = {
       return 'clear_debts';
     }
 
-    // 5b. "Eliminar cliente" - NUEVO
-    if (/(?:elimina|borrar|quitar|eliminar)\s+(?:al\s+)?(?:cliente\s+)?(.+)/i.test(normalizedText) ||
-      /(.+)\s+(?:ya\s+)?(?:no\s+)?(?:me\s+)?(?:debe|nada|pendiente)/i.test(normalizedText) ||
-      /(.+)\s+(?:está\s+)?(?:cancelado|saldado|pagado|quitado)/i.test(normalizedText)) {
-      console.log('✅ Intención: delete_client');
-      return 'delete_client';
-    }
-
-    if (/(?:resumen\s+(?:de\s+)?mi\s+negocio|estad[ií]sticas?\s+de\s+clientes?|clientes?\s+con\s+deuda|clientes?\s+al\s+d[ií]a|reporte\s+de\s+negocio)/i.test(normalizedText)) {
-      console.log('✅ Intención: business_stats');
-      return 'business_stats';
-    }
-
-    // ============ PAGOS HISTÓRICOS ============
-
-    // 6. Historial de pagos - TODAS LAS VARIACIONES
-    if (/(?:historial|registro|lista|todos los)\s+(?:de\s+)?(?:pagos|abonos|cancelaciones)\s+(?:de|del)/i.test(normalizedText) ||
-      /(?:cu[aá]nto\s+ha\s+pagado|total\s+pagado|suma\s+de\s+pagos)\s+.+/i.test(normalizedText)) {
-      console.log('✅ Intención: query_payment_history');
-      return 'query_payment_history';
-    }
-
-    // 7. Último pago - TODAS LAS VARIACIONES
-    if (/(?:[úu]ltimo|[úu]ltima\s+vez|reciente|recientemente|cu[aá]ndo)\s+(?:pag[óo]|abon[óo]|cancel[óo]|sald[óo]|liquid[óo])/i.test(normalizedText) ||
-      /(?:cu[aá]ndo\s+fue\s+el\s+[úu]ltimo|hace\s+cu[aá]nto\s+pag[óo])/i.test(normalizedText)) {
-      console.log('✅ Intención: query_last_payment');
-      return 'query_last_payment';
-    }
-
-    // 8. Deudas vencidas - TODAS LAS VARIACIONES
-    if (/(?:deudas\s+vencidas|atrasadas|morosas|en\s+mora|con\s+retraso)/i.test(normalizedText) ||
-      /(?:qui[eé]n\s+no\s+ha\s+pagado|qui[eé]n\s+se\s+atras[óo]|qui[eé]n\s+est[aá]\s+atrasado)/i.test(normalizedText)) {
-      console.log('✅ Intención: query_overdue_debts');
-      return 'query_overdue_debts';
-    }
-
-    // ============ ✅ CORREGIDO: DETECCIÓN DE PAGOS PERFECTA ============
-
-    // 9. PAGOS RECIBIDOS - TODAS LAS VARIACIONES POSIBLES
-    const pagosRecibidosPatterns = [
-      // "Me pagó José 5000"
-      /me\s+pag[óo]\s+.+\s+\d+/i,
-      // "José me pagó 5000"
-      /.+\s+me\s+pag[óo]\s+\d+/i,
-      // "Me abonó María 3000" - MEJORADO para extraer nombre completo
-      /me\s+abon[óo]\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)\s+\d)+/i,
-      // "Me canceló la deuda"
-      /me\s+cancel[óo]\s+.+\s+\d+/i,
-      // "Me saldó la cuenta"
-      /me\s+sald[óo]\s+.+\s+\d+/i,
-      // "Me liquidó el préstamo"
-      /me\s+liquid[óo]\s+.+\s+\d+/i,
-      // "Me dio el dinero"
-      /me\s+di[óo]\s+(?:el\s+)?dinero/i,
-      // "Me entregó el pago"
-      /me\s+entreg[óo]\s+(?:el\s+)?pago/i,
-      // "Recibí pago de"
-      /recib[ií]\s+pago\s+(?:de|del)/i,
-      // "Me pegó" (Colombia)
-      /me\s+peg[óo]\s+.+\s+\d+/i,
-      // "Me metió" (Colombia)
-      /me\s+meti[óo]\s+.+\s+\d+/i,
-      // "Me soltó" (Argentina/Colombia)
-      /me\s+solt[óo]\s+.+\s+\d+/i,
-      // "Me chicleó" (México)
-      /me\s+chicle[óo]\s+.+\s+\d+/i,
-      // "Me depositó"
-      /me\s+deposit[óo]\s+.+\s+\d+/i,
-      // "Me transfirió"
-      /me\s+transfer[yóo]\s+.+\s+\d+/i,
-    ];
-
-    // Verificar si es un pago recibido
-    for (const pattern of pagosRecibidosPatterns) {
-      if (pattern.test(normalizedText)) {
-        console.log('✅ Intención: add_payment (recibido) - Patrón:', pattern);
-        return 'add_payment';
-      }
-    }
-
-    // 10. PAGOS REALIZADOS - TODAS LAS VARIACIONES POSIBLES
-    const pagosRealizadosPatterns = [
-      // "Le pagué a José 5000" - ✅ ESTE ES EL CLAVE
-      /le\s+pag[uú]e\s+a\s+.+\s+\d+/i,
-      // "Pagué a María 3000"
-      /pag[uú]e\s+a\s+.+\s+\d+/i,
-      // "Le aboné a Carlos"
-      /le\s+abon[eé]\s+a\s+.+\s+\d+/i,
-      // "Aboné a la cuenta de"
-      /abon[eé]\s+a\s+.+\s+\d+/i,
-      // "Le cancelé la deuda"
-      /le\s+cancel[eé]\s+.+\s+\d+/i,
-      // "Cancelé a Juan 4000"
-      /cancel[eé]\s+a\s+.+\s+\d+/i,
-      // "Le saldé la deuda"
-      /le\s+sald[eé]\s+.+\s+\d+/i,
-      // "Saldé con Pedro 5000"
-      /sald[eé]\s+(?:con|a)\s+.+\s+\d+/i,
-      // "Le liquidé el préstamo"
-      /le\s+liquid[eé]\s+.+\s+\d+/i,
-      // "Liquidé a María 6000"
-      /liquid[eé]\s+a\s+.+\s+\d+/i,
-      // "Hice un pago a"
-      /hice\s+un\s+pago\s+(?:a|para)/i,
-      // "Realicé el pago de"
-      /realic[eé]\s+(?:el\s+)?pago\s+(?:de|del)/i,
-      // "Efectué pago a"
-      /efectu[eé]\s+pago\s+(?:a|para)/i,
-      // "Deposité a"
-      /deposit[eé]\s+a\s+.+\s+\d+/i,
-      // "Transferí a"
-      /transfer[ií]\s+a\s+.+\s+\d+/i,
-      // "Mandé dinero a"
-      /mand[eé]\s+dinero\s+a/i,
-      // "Envié plata a"
-      /envi[eé]\s+plata\s+a/i,
-      // "Pegué" (Colombia)
-      /peg[uú]e\s+a\s+.+\s+\d+/i,
-      // "Metí" (Colombia)
-      /met[ií]\s+a\s+.+\s+\d+/i,
-      // "Solté" (Argentina/Colombia)
-      /solt[eé]\s+a\s+.+\s+\d+/i,
-      // "Chicleé" (México)
-      /chicle[eé]\s+a\s+.+\s+\d+/i,
-    ];
-
-    for (const pattern of pagosRealizadosPatterns) {
-      if (pattern.test(normalizedText)) {
-        console.log('✅ Intención: add_payment (realizado) - Patrón:', pattern);
-        return 'add_payment';
-      }
-    }
-
-    // ============ DEUDAS ============
-
-    // 11. DEUDAS QUE YO TENGO - TODAS LAS VARIACIONES
-    const deudasYoPatterns = [
-      // "Le debo a José 5000" - ✅ CLAVE
-      /le\s+debo\s+a\s+.+\s+\d+/i,
-      // "Yo le debo a María"
-      /yo\s+le\s+debo\s+a\s+.+\s+\d+/i,
-      // "Debo a Carlos 3000"
-      /debo\s+a\s+.+\s+\d+/i,
-      // "Tengo que pagarle a"
-      /tengo\s+que\s+pagar(?:le)?\s+a\s+.+\s+\d+/i,
-      // "Me toca pagar a"
-      /me\s+toca\s+pagar\s+(?:a|para)\s+.+\s+\d+/i,
-      // "Tengo una deuda con"
-      /tengo\s+una\s+deuda\s+con\s+.+\s+\d+/i,
-      // "Contraje deuda con"
-      /contraje\s+deuda\s+con\s+.+\s+\d+/i,
-      // "Me endeudé con"
-      /me\s+endeud[eé]\s+con\s+.+\s+\d+/i,
-      // "Me fió Juan 5000"
-      /me\s+fi[óo]\s+.+\s+\d+/i,
-      // "Me prestó dinero"
-      /me\s+prest[óo]\s+.+\s+\d+/i,
-      // "Me dio fiado"
-      /me\s+di[óo]\s+fiado\s+.+\s+\d+/i,
-      // "Me dio préstamo"
-      /me\s+di[óo]\s+pr[eé]stamo\s+.+\s+\d+/i,
-      // "Compré fiado a"
-      /compr[eé]\s+fiado\s+a\s+.+\s+\d+/i,
-      // "Saqué fiado a"
-      /saqu[eé]\s+fiado\s+a\s+.+\s+\d+/i,
-      // "Pedí fiado a"
-      /ped[ií]\s+fiado\s+a\s+.+\s+\d+/i,
-      // "Tomé prestado de"
-      /tom[eé]\s+prestado\s+de\s+.+\s+\d+/i,
-      // "Me vendió a crédito"
-      /me\s+vendi[óo]\s+a\s+cr[eé]dito\s+.+\s+\d+/i,
-    ];
-
-    for (const pattern of deudasYoPatterns) {
-      if (pattern.test(normalizedText)) {
-        console.log('✅ Intención: add_debt (yo debo) - Patrón:', pattern);
-        return 'add_debt';
-      }
-    }
-
+    // ============ DEUDAS - DETECTAR ANTES DE DELETE_CLIENT ============
     // 12. DEUDAS QUE ME DEBEN - TODAS LAS VARIACIONES
     const deudasMeDebenPatterns = [
       // "José me debe 5000"
@@ -1849,9 +1670,46 @@ private intentKeywords = {
       }
     }
 
-    // ============ CONSULTAS ESPECÍFICAS ============
+    // 12b. DEUDAS QUE DEBO - TODAS LAS VARIACIONES
+    const deudaYoDeboPatterns = [
+      // "Le debo a José 5000"
+      /le\s+debo\s+a\s+.+\s+\d+/i,
+      // "Le debo a José"
+      /le\s+debo\s+a\s+.+/i,
+      // "Yo le debo a María"
+      /yo\s+le\s+debo\s+a\s+.+/i,
+      // "Le presté a José 3000"
+      /le\s+prest[eé]\s+a\s+.+\s+\d+/i,
+      // "Le di fiado a José"
+      /le\s+di\s+fiado\s+a\s+.+/i,
+      // "Tengo una deuda con"
+      /tengo\s+(?:una\s+)?deuda\s+con\s+.+/i,
+      // "Tengo un préstamo con"
+      /tengo\s+(?:un\s+)?pr[eé]stamo\s+con\s+.+/i,
+      // "Le compré fiado a"
+      /le\s+compr[eé]\s+fiado\s+a\s+.+\s+\d+/i,
+      // "Saqué fiado a"
+      /saqu[eé]\s+fiado\s+a\s+.+\s+\d+/i,
+      // "Me prestó"
+      /me\s+prest[óo]\s+.+\s+\d+/i,
+    ];
 
-    // 13. Consulta de deuda específica
+    for (const pattern of deudaYoDeboPatterns) {
+      if (pattern.test(normalizedText)) {
+        console.log('✅ Intención: add_debt (yo debo) - Patrón:', pattern);
+        return 'add_debt';
+      }
+    }
+
+    // 5b. "Eliminar cliente" - NUEVO (MOVER DESPUÉS DE ADD_DEBT)
+    if (/(?:elimina|borrar|quitar|eliminar)\s+(?:al\s+)?(?:cliente\s+)?(.+)/i.test(normalizedText) ||
+      /(.+)\s+(?:ya\s+)?(?:no\s+)?(?:me\s+)?(?:debe|nada|pendiente)(?!\s+\d)/i.test(normalizedText) ||
+      /(.+)\s+(?:está\s+)?(?:cancelado|saldado|pagado|quitado)/i.test(normalizedText)) {
+      console.log('✅ Intención: delete_client');
+      return 'delete_client';
+    }
+
+    // ============ CONSULTAS ESPECÍFICAS ============
     if (/(?:cu[aá]nto|qu[eé])\s+(?:me\s+)?debe\s+.+/i.test(normalizedText) ||
       /(?:cu[aá]nto|qu[eé])\s+(?:le\s+)?debo\s+a\s+.+/i.test(normalizedText) ||
       /(?:consulta|ver|revisar|chequear)\s+(?:la\s+)?deuda\s+(?:de|del)/i.test(normalizedText) ||
