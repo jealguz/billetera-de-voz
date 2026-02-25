@@ -1,6 +1,7 @@
 import { nlpService, ParsedCommand } from './nlpService';
-import { storageService } from './databaseService';
+import { storageService } from './apiStorageService';
 import { formatCurrency } from '../utils/formatters';
+import api from './apiClient';
 
 export interface VoiceResponse {
   success: boolean;
@@ -984,53 +985,23 @@ case 'show_summary':
     }
   }
 
-  // ============ MANEJADORES DE ACCIONES (CORREGIDOS CON ASYNC/AWAIT) ============
+  // ============ MANEJADORES DE ACCIONES ============
 
-  private async checkClientExists(personName: string): Promise<boolean> {
-    if (!personName) {
-      console.log('🔴 DEBUG: personName es null o undefined');
+  private async checkClientExists(name: string): Promise<boolean> {
+    try {
+      return await storageService.checkClientExists(name);
+    } catch (error) {
+      console.error('Error checking client exists:', error);
       return false;
     }
+  }
 
+  private async getClientByName(name: string): Promise<any> {
     try {
-      console.log('🔍 DEBUG checkClientExists: Buscando cliente:', personName);
-
-      // Obtener clientes de forma asíncrona
-      const clients = await storageService.getClients();
-      console.log('🔍 DEBUG: Clientes obtenidos:', clients.length, 'clientes');
-
-      // Ver si existe
-      const normalizedPersonName = personName.toLowerCase().trim();
-      console.log('🔍 DEBUG: Nombre normalizado:', normalizedPersonName);
-
-      // Buscar cliente exacto
-      const exactMatch = clients.find(client =>
-        client.name.toLowerCase().trim() === normalizedPersonName
-      );
-
-      if (exactMatch) {
-        console.log('✅ DEBUG: Cliente encontrado (exact match):', exactMatch.name);
-        return true;
-      }
-
-      // Buscar coincidencias parciales
-      const partialMatch = clients.find(client => {
-        const clientName = client.name.toLowerCase().trim();
-        return clientName.includes(normalizedPersonName) ||
-          normalizedPersonName.includes(clientName);
-      });
-
-      if (partialMatch) {
-        console.log('✅ DEBUG: Cliente encontrado (partial match):', partialMatch.name);
-        return true;
-      }
-
-      console.log('❌ DEBUG: Cliente NO encontrado');
-      return false;
-
+      return await storageService.getClientByName(name);
     } catch (error) {
-      console.error('🔴 ERROR en checkClientExists:', error);
-      return false;
+      console.error('Error getting client by name:', error);
+      return null;
     }
   }
 
@@ -1046,19 +1017,21 @@ case 'show_summary':
       rawText.includes('le debo') ||
       rawText.includes('debo a');
 
-    console.log('💰 Determinando tipo de deuda:', isOwing ? 'owing (TÚ debes)' : 'owed (te deben)');
-
     try {
-      // CAMBIADO: Ahora es async/await
-      await storageService.addDebt({
-        type: isOwing ? 'owing' : 'owed',
-        person: this.capitalizeName(person),
-        amount: amount,
-        description: description || 'Deuda registrada por voz',
-        date: new Date(),
-        status: 'pending',
-        paidAmount: 0,
-      });
+      // Buscar o crear cliente
+      let client = await this.getClientByName(person);
+      
+      if (!client) {
+        // Crear cliente
+        client = await api.createClient(this.capitalizeName(person));
+      }
+
+      // Crear deuda
+      await api.createDebt(
+        client.id,
+        amount,
+        description || 'Deuda registrada por voz'
+      );
 
       return true;
     } catch (error: any) {
@@ -1074,52 +1047,34 @@ case 'show_summary':
       throw new Error('Falta información: persona o monto');
     }
 
-    const isMyPayment = parsed.rawText.toLowerCase().includes('le abono') ||
-      parsed.rawText.toLowerCase().includes('abono a') ||
-      parsed.rawText.toLowerCase().includes('le pagué') ||
-      parsed.rawText.toLowerCase().includes('pagué a');
-
-    // CAMBIADO: Ahora es async/await
-    const clients = await storageService.getClients();
-    const client = clients.find(c =>
-      c.name.toLowerCase().includes(person.toLowerCase())
-    );
-
-    if (!client) {
-      throw new Error(`${person} no está registrado como cliente`);
-    }
-
-    const debtType = isMyPayment ? 'owing' : 'owed';
-    // CAMBIADO: Ahora es async/await
-    const debts = await storageService.getDebts();
-    const clientDebts = debts.filter(d =>
-      d.type === debtType &&
-      d.person.toLowerCase() === client.name.toLowerCase() &&
-      d.status !== 'paid'
-    );
-
-    if (clientDebts.length === 0) {
-      const tipoTexto = isMyPayment ? 'deudas tuyas con' : 'deudas de';
-      throw new Error(`${person} no tiene ${tipoTexto} pendientes`);
-    }
-
-    const debt = clientDebts[0];
-
     try {
-      // CAMBIADO: Ahora es async/await
-      await storageService.addPayment(
-        debt.id,
-        amount,
-        `Pago de ${person} registrado por voz`
-      );
+      // Buscar cliente
+      const client = await this.getClientByName(person);
+      
+      if (!client) {
+        throw new Error(`${person} no está registrado como cliente`);
+      }
+
+      // Obtener deudas del cliente
+      const debts = await api.getDebts();
+      const clientDebts = debts.filter(d => d.clientId === client.id && !d.isPaid);
+
+      if (clientDebts.length === 0) {
+        throw new Error(`${person} no tiene deudas pendientes`);
+      }
+
+      // Pagar la primera deuda pendiente (o la más antigua)
+      const debt = clientDebts[0];
+      await api.payDebt(debt.id, amount, 'Pago registrado por voz');
+
       return true;
-    } catch (error) {
-      console.error('Error registrando pago:', error);
+    } catch (error: any) {
+      console.error('Error agregando pago:', error);
       throw error;
     }
   }
 
-private async handleQueryDebt(parsed: ParsedCommand): Promise<any> {
+  private async handleQueryDebt(parsed: ParsedCommand): Promise<any> {
   const { person } = parsed.entities;
   const rawText = parsed.rawText.toLowerCase();
 

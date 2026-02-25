@@ -68,21 +68,8 @@ const AddDebtPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      const amount = parseFloat(formData.amount);
-      
-      storageService.addDebt({
-        type: formData.type,
-        person: formData.person.trim(),
-        amount: amount,
-        description: formData.description.trim(),
-        date: new Date(),
-        dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
-        status: 'pending',
-        paidAmount: 0,
-      });
-      
-      alert('✅ Deuda agregada exitosamente');
-      navigate('/');
+      alert('Para agregar deudas, usa la página de Negocio con comandos de voz. ¡Es más fácil!');
+      navigate('/business');
     } catch (error) {
       console.error('Error al agregar deuda:', error);
       alert('❌ Error al agregar deuda');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic } from 'lucide-react';
 import { useVoice } from '../hooks/useVoice';
-import { clientService } from '../services/clientService';
+import { storageService } from '../services/apiStorageService';
 import Card from '../components/ui/Card';
 
 const BusinessPage: React.FC = () => {
@@ -17,19 +17,21 @@ const BusinessPage: React.FC = () => {
     waitingForConfirmation,
   } = useVoice();
 
-   useEffect(() => {
-    console.log('=== DEBUG VOICE HOOK ===');
-    console.log('needsConfirmation:', needsConfirmation);
-    console.log('waitingForConfirmation:', waitingForConfirmation);
-    console.log('confirmationData:', confirmationData);
-    console.log('transcript:', transcript);
-    console.log('lastResponse:', lastResponse);
-    console.log('=====================');
-  }, [needsConfirmation, waitingForConfirmation, confirmationData, transcript, lastResponse]);
-
-  const [summary, setSummary] = useState(clientService.getBusinessSummary());
+  const [summary, setSummary] = useState<any>({ totalClients: 0, totalOwed: 0 });
   const [isProcessing, setIsProcessing] = useState(false);
   const retryRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        const businessSummary = await storageService.getBusinessSummary();
+        setSummary(businessSummary);
+      } catch (error) {
+        console.error('Error loading summary:', error);
+      }
+    };
+    loadSummary();
+  }, []);
 
   // Efecto para manejar confirmaciones por voz
   useEffect(() => {
@@ -65,7 +67,8 @@ const BusinessPage: React.FC = () => {
         setIsProcessing(false);
         
         // Actualizar resumen después de la confirmación
-        setSummary(clientService.getBusinessSummary());
+        const businessSummary = await storageService.getBusinessSummary();
+        setSummary(businessSummary);
       }
     };
 
@@ -107,8 +110,9 @@ const BusinessPage: React.FC = () => {
       
       if (result && !result.needsConfirmation) {
         // Actualizar resumen después de comando exitoso
-        setTimeout(() => {
-          setSummary(clientService.getBusinessSummary());
+        setTimeout(async () => {
+          const businessSummary = await storageService.getBusinessSummary();
+          setSummary(businessSummary);
         }, 500);
       }
     } catch (error) {

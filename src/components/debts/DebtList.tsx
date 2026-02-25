@@ -1,26 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, UserPlus, Settings } from 'lucide-react';
-import { Debt } from '../../types';
-import { storageService } from '../../services/databaseService';
-import { formatCurrency } from '../../utils/formatters';
-import DebtCard from './DebtCard';
-import Button from '../ui/Button';
-import Input from '../ui/Input';
+import { Search } from 'lucide-react';
+import api from '../../services/apiClient';
+import { Debt as ApiDebt } from '../../types/api';
 import Card from '../ui/Card';
 
 const DebtList: React.FC = () => {
-  const [debts, setDebts] = useState<Debt[]>([]);
-  const [filteredDebts, setFilteredDebts] = useState<Debt[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'owed' | 'owing'>('all');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'paid'>('all');
-  const [loading, setLoading] = useState(true); // Estado de carga
+  const [debts, setDebts] = useState<ApiDebt[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Función para cargar deudas (ASÍNCRONA)
   const loadDebts = useCallback(async () => {
     setLoading(true);
     try {
-      const loadedDebts = await storageService.getDebts(); // Agrega AWAIT
+      const loadedDebts = await api.getDebts();
       setDebts(loadedDebts);
     } catch (error) {
       console.error('Error cargando deudas:', error);
@@ -30,221 +21,54 @@ const DebtList: React.FC = () => {
     }
   }, []);
 
-  // Cargar deudas al montar el componente
   useEffect(() => {
     loadDebts();
   }, [loadDebts]);
 
-  // También puedes agregar un listener para actualizaciones
-  useEffect(() => {
-    const handleDebtsUpdated = () => {
-      loadDebts();
-    };
-
-    window.addEventListener('debtsUpdated', handleDebtsUpdated);
-    return () => {
-      window.removeEventListener('debtsUpdated', handleDebtsUpdated);
-    };
-  }, [loadDebts]);
-
-  // Función para filtrar deudas
-  const filterDebts = useCallback(() => {
-    let filtered = [...debts];
-
-    // Filtrar por tipo
-    if (filterType !== 'all') {
-      filtered = filtered.filter(debt => debt.type === filterType);
-    }
-
-    // Filtrar por estado
-    if (filterStatus !== 'all') {
-      filtered = filtered.filter(debt => debt.status === filterStatus);
-    }
-
-    // Filtrar por búsqueda
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(debt => 
-        debt.person.toLowerCase().includes(term) ||
-        debt.description?.toLowerCase().includes(term)
-      );
-    }
-
-    setFilteredDebts(filtered);
-  }, [debts, searchTerm, filterType, filterStatus]);
-
-  // Aplicar filtros cuando cambien las dependencias
-  useEffect(() => {
-    filterDebts();
-  }, [filterDebts]);
-
-  // Calcular totales
-  const calculateTotals = useCallback(() => {
-    const totalOwed = debts
-      .filter(d => d.type === 'owed' && d.status !== 'paid')
-      .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
-    
-    const totalOwing = debts
-      .filter(d => d.type === 'owing' && d.status !== 'paid')
-      .reduce((sum, d) => sum + (d.amount - (d.paidAmount || 0)), 0);
-
-    return { totalOwed, totalOwing };
-  }, [debts]);
-
-  const { totalOwed, totalOwing } = calculateTotals();
-
-  // Manejar eliminación de deuda (ASÍNCRONO)
-  const handleDeleteDebt = useCallback(async (id: string) => {
-    if (window.confirm('¿Estás seguro de eliminar esta deuda?')) {
-      await storageService.deleteDebt(id);
-      loadDebts();
-    }
-  }, [loadDebts]);
-
-  // Manejar marca como pagado (ASÍNCRONO)
-  const handleMarkAsPaid = useCallback(async (id: string) => {
-    const debt = debts.find(d => d.id === id);
-    if (debt) {
-      await storageService.updateDebt(id, { 
-        status: 'paid',
-        paidAmount: debt.amount 
-      });
-      loadDebts();
-    }
-  }, [debts, loadDebts]);
-
-  // Manejar agregar nueva deuda
-  const handleAddDebt = () => {
-    // Aquí puedes redirigir a la página de agregar deuda
-    // o abrir un modal
-    console.log('Agregar nueva deuda');
-    // Ejemplo: window.location.href = '/add-debt';
-    // O usar tu sistema de navegación
-  };
-
-  // Mostrar loading mientras carga
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Cargando deudas...</p>
-        </div>
+      <div className="p-4">
+        <Card>
+          <p className="text-center">Cargando...</p>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Totales */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-gradient-to-r from-green-500 to-emerald-600 text-white">
-          <p className="text-sm opacity-90">Te deben</p>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwed)}</p>
-          <p className="text-xs opacity-80 mt-2">
-            {debts.filter(d => d.type === 'owed' && d.status !== 'paid').length} personas
-          </p>
-        </Card>
-        
-        <Card className="bg-gradient-to-r from-rose-500 to-pink-600 text-white">
-          <p className="text-sm opacity-90">Tú debes</p>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwing)}</p>
-          <p className="text-xs opacity-80 mt-2">
-            {debts.filter(d => d.type === 'owing' && d.status !== 'paid').length} personas
-          </p>
-        </Card>
-      </div>
-
-      {/* Filtros y búsqueda */}
+    <div className="p-4">
       <Card>
-        <div className="space-y-4">
-          <Input
-            placeholder="Buscar por nombre o descripción..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            icon={Search}
-          />
-          
-          <div className="flex flex-wrap gap-2">
-            <select 
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as 'all' | 'owed' | 'owing')}
-            >
-              <option value="all">Todos los tipos</option>
-              <option value="owed">Te deben</option>
-              <option value="owing">Tú debes</option>
-            </select>
-            
-            <select 
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'pending' | 'paid')}
-            >
-              <option value="all">Todos los estados</option>
-              <option value="pending">Pendientes</option>
-              <option value="paid">Pagados</option>
-            </select>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Settings}
-              onClick={() => {
-                setSearchTerm('');
-                setFilterType('all');
-                setFilterStatus('all');
-              }}
-            >
-              Limpiar filtros
-            </Button>
-          </div>
+        <div className="text-center py-8">
+          <p className="text-gray-600 mb-4">
+            Para gestionar tus deudas, usa la página de Negocio con comandos de voz.
+          </p>
+          <p className="text-sm text-gray-500">
+            Di: "José me debe 1000 pesos" para registrar una deuda
+          </p>
         </div>
       </Card>
 
-      {/* Lista de deudas */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-gray-900">
-            Deudas ({filteredDebts.length})
-          </h3>
-          <Button 
-            size="sm" 
-            icon={UserPlus}
-            onClick={handleAddDebt}
-          >
-            Agregar
-          </Button>
+      {debts.length > 0 && (
+        <div className="mt-4">
+          <h3 className="font-bold text-lg mb-2">Deudas Registradas: {debts.length}</h3>
+          {debts.map((debt) => (
+            <Card key={debt.id} className="mb-2">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{debt.clientName || 'Cliente #' + debt.clientId}</p>
+                  <p className="text-sm text-gray-500">{debt.description || 'Sin descripción'}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-lg">${Number(debt.amount).toLocaleString()}</p>
+                  <p className={`text-sm ${debt.isPaid ? 'text-green-600' : 'text-red-600'}`}>
+                    {debt.isPaid ? 'Pagado' : 'Pendiente'}
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
-
-        {filteredDebts.length === 0 ? (
-          <Card className="text-center py-8">
-            <div className="text-gray-400 mb-2">📝</div>
-            <p className="text-gray-500">
-              {searchTerm || filterType !== 'all' || filterStatus !== 'all'
-                ? 'No hay deudas con estos filtros'
-                : 'No hay deudas registradas'}
-            </p>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="mt-4"
-              onClick={handleAddDebt}
-            >
-              Agregar primera deuda
-            </Button>
-          </Card>
-        ) : (
-          filteredDebts.map((debt) => (
-            <DebtCard
-              key={debt.id}
-              debt={debt}
-              onDelete={handleDeleteDebt}
-              onMarkAsPaid={handleMarkAsPaid}
-            />
-          ))
-        )}
-      </div>
+      )}
     </div>
   );
 };
