@@ -106,13 +106,15 @@ export const storageService = {
   async getClientByName(name: string) {
     try {
       const clients = await api.getClients();
-      console.log('🔍 getClientByName - clientes obtenidos:', clients);
+      console.log('🔍 getClientByName - clientes obtenidos:', JSON.stringify(clients, null, 2));
       const normalizedName = name.toLowerCase().trim();
+      console.log('🔍 getClientByName - nombre buscado:', normalizedName);
       
-      const client = clients.find((c: any) => 
-        c.name.toLowerCase() === normalizedName ||
-        c.name.toLowerCase().includes(normalizedName)
-      );
+      const client = clients.find((c: any) => {
+        const clientName = c.name.toLowerCase();
+        console.log('🔍 getClientByName - comparando con:', clientName);
+        return clientName === normalizedName || clientName.includes(normalizedName);
+      });
 
       console.log('🔍 getClientByName - cliente encontrado:', client);
 
