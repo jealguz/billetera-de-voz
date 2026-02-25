@@ -40,9 +40,8 @@ const BalanceCards: React.FC = () => {
   const debtsIOwe = debts.filter(d => d.status !== 'paid' && Number(d.amount) < 0);
   const totalIOwe = debtsIOwe.reduce((sum, d) => sum + (Number(d.pendingAmount) || 0), 0);
 
-  // Total cobrado (deudas pagadas)
+  // Total cobrado - sumar TODOS los pagos realizados (no solo deudas pagadas)
   const totalPaid = debts
-    .filter(d => d.status === 'paid')
     .reduce((sum, d) => sum + (Number(d.paidAmount) || 0), 0);
 
   if (loading) {
