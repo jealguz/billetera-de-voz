@@ -116,17 +116,38 @@ export const storageService = {
       
       console.log('🔍 getClientByName - nombre buscado (normalizado):', normalizedSearch);
       
-      const client = clients.find((c: any) => {
-        // Normalizar el nombre del cliente
+      // Si el nombre tiene más de una palabra, buscar coincidencia exacta primero
+      const searchWords = normalizedSearch.split(' ').filter(w => w.length > 1);
+      
+      // Buscar coincidencia exacta (prioridad más alta)
+      let client = clients.find((c: any) => {
+        const clientName = c.name.toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        return clientName === normalizedSearch;
+      });
+      
+      if (client) {
+        console.log('🔍 getClientByName - coincidencia exacta encontrada:', client.name);
+        return {
+          id: client.id,
+          name: client.name,
+          phone: client.phone,
+          email: client.email
+        };
+      }
+      
+      // Si no hay coincidencia exacta, buscar por todas las palabras del nombre
+      client = clients.find((c: any) => {
         const clientName = c.name.toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
         
-        console.log('🔍 getClientByName - comparando con:', clientName);
-        return clientName === normalizedSearch || clientName.includes(normalizedSearch);
+        // Verificar que TODAS las palabras del nombre buscado estén en el nombre del cliente
+        return searchWords.every(word => clientName.includes(word));
       });
 
-      console.log('🔍 getClientByName - cliente encontrado:', client);
+      console.log('🔍 getClientByName - cliente encontrado (búsqueda por palabras):', client);
 
       if (!client) return null;
 

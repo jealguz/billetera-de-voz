@@ -1644,8 +1644,8 @@ private intentKeywords = {
       /me\s+pag[óo]\s+.+\s+\d+/i,
       // "José me pagó 5000"
       /.+\s+me\s+pag[óo]\s+\d+/i,
-      // "Me abonó María 3000"
-      /me\s+abon[óo]\s+.+\s+\d+/i,
+      // "Me abonó María 3000" - MEJORADO para extraer nombre completo
+      /me\s+abon[óo]\s+([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)\s+\d)+/i,
       // "Me canceló la deuda"
       /me\s+cancel[óo]\s+.+\s+\d+/i,
       // "Me saldó la cuenta"
@@ -1669,13 +1669,10 @@ private intentKeywords = {
       // "Me depositó"
       /me\s+deposit[óo]\s+.+\s+\d+/i,
       // "Me transfirió"
-      /me\s+transfiri[óo]\s+.+\s+\d+/i,
-      // "Me mandó dinero"
-      /me\s+mand[óo]\s+dinero/i,
-      // "Me envió plata"
-      /me\s+envi[óo]\s+plata/i,
+      /me\s+transfer[yóo]\s+.+\s+\d+/i,
     ];
 
+    // Verificar si es un pago recibido
     for (const pattern of pagosRecibidosPatterns) {
       if (pattern.test(normalizedText)) {
         console.log('✅ Intención: add_payment (recibido) - Patrón:', pattern);
