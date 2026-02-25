@@ -100,36 +100,42 @@ const DebtList: React.FC = () => {
       {debts.length > 0 ? (
         <div className="mt-4">
           <h3 className="font-bold text-lg mb-2">Deudas Registradas: {debts.length}</h3>
-          {debts.map((debt) => (
-            <Card key={debt.id} className="mb-2">
-              <div className="flex justify-between items-center">
-                <div className="flex-1">
-                  <p className="font-medium">
-                    {debt.clientName || 'Cliente indefinido'}
-                  </p>
-                  <p className="text-sm text-gray-500">{debt.description || 'Sin descripción'}</p>
-                  {debt.paidAmount > 0 && (
-                    <p className="text-xs text-green-600">Pagado: ${Number(debt.paidAmount).toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="text-right flex items-center gap-3">
-                  <div>
-                    <p className="font-bold text-lg">${Number(debt.pendingAmount || debt.amount).toLocaleString()}</p>
-                    <p className={`text-sm ${debt.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
-                      {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
+          {debts.map((debt) => {
+            const isOwing = debt.type === 'owing'; // Yo debo
+            return (
+              <Card key={debt.id} className={`mb-2 ${isOwing ? 'border-l-4 border-l-red-500' : 'border-l-4 border-l-blue-500'}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex-1">
+                    <p className={`font-medium ${isOwing ? 'text-red-600' : 'text-blue-600'}`}>
+                      {debt.clientName || 'Cliente indefinido'}
+                      <span className="text-xs ml-2 font-normal">
+                        {isOwing ? '(Yo debo)' : '(Me deben)'}
+                      </span>
                     </p>
+                    <p className="text-sm text-gray-500">{debt.description || 'Sin descripción'}</p>
+                    {debt.paidAmount > 0 && (
+                      <p className="text-xs text-green-600">Pagado: ${Number(debt.paidAmount).toLocaleString()}</p>
+                    )}
                   </div>
-                  <button
-                    onClick={() => handleDeleteDebt(debt.id, debt.clientName || 'Cliente')}
-                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Eliminar deuda"
-                  >
-                    <Trash2 size={20} />
-                  </button>
+                  <div className="text-right flex items-center gap-3">
+                    <div>
+                      <p className={`font-bold text-lg ${isOwing ? 'text-red-600' : 'text-blue-600'}`}>${Number(debt.pendingAmount || debt.amount).toLocaleString()}</p>
+                      <p className={`text-sm ${debt.status === 'paid' ? 'text-green-600' : isOwing ? 'text-red-500' : 'text-blue-500'}`}>
+                        {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteDebt(debt.id, debt.clientName || 'Cliente')}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar deuda"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       ) : (
         <Card className="mt-4">
