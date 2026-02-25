@@ -1013,7 +1013,7 @@ case 'show_summary':
     }
 
     const rawText = parsed.rawText.toLowerCase();
-    const isOwing = rawText.includes('yo debo') ||
+    //const isOwing = rawText.includes('yo debo') ||
       rawText.includes('le debo') ||
       rawText.includes('debo a');
 

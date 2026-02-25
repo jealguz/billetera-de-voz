@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, User, DollarSign, MessageSquare, Calendar } from 'lucide-react';
-import { storageService } from '../services/databaseService';
 import Card from '../components/ui/Card';
 
 const AddDebtPage: React.FC = () => {

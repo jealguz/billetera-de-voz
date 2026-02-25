@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search } from 'lucide-react';
 import api from '../../services/apiClient';
 import { Debt as ApiDebt } from '../../types/api';
 import Card from '../ui/Card';
