@@ -1,16 +1,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Trash2 } from 'lucide-react';
+import { storageService } from '../../services/apiStorageService';
 import api from '../../services/apiClient';
-import { Debt as ApiDebt } from '../../types/api';
 import Card from '../ui/Card';
 
 const DebtList: React.FC = () => {
-  const [debts, setDebts] = useState<ApiDebt[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadDebts = useCallback(async () => {
     setLoading(true);
     try {
-      const loadedDebts = await api.getDebts();
+      console.log('📦 DebtList - Cargando deudas...');
+      const loadedDebts = await storageService.getDebts();
+      console.log('📦 DebtList - Deudas cargadas:', loadedDebts);
       setDebts(loadedDebts);
     } catch (error) {
       console.error('Error cargando deudas:', error);
@@ -23,6 +26,17 @@ const DebtList: React.FC = () => {
   useEffect(() => {
     loadDebts();
   }, [loadDebts]);
+
+  const handleDeleteDebt = async (debtId: number) => {
+    if (!confirm('¿Estás seguro de eliminar esta deuda?')) return;
+    
+    try {
+      await api.deleteDebt(debtId);
+      loadDebts();
+    } catch (error) {
+      console.error('Error eliminando deuda:', error);
+    }
+  };
 
   if (loading) {
     return (
@@ -47,26 +61,41 @@ const DebtList: React.FC = () => {
         </div>
       </Card>
 
-      {debts.length > 0 && (
+      {debts.length > 0 ? (
         <div className="mt-4">
           <h3 className="font-bold text-lg mb-2">Deudas Registradas: {debts.length}</h3>
           {debts.map((debt) => (
             <Card key={debt.id} className="mb-2">
               <div className="flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{debt.clientName || 'Cliente #' + debt.clientId}</p>
+                <div className="flex-1">
+                  <p className="font-medium">
+                    {debt.clientName || 'Cliente indefinido'} (ID: {debt.clientId})
+                  </p>
                   <p className="text-sm text-gray-500">{debt.description || 'Sin descripción'}</p>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-lg">${Number(debt.amount).toLocaleString()}</p>
-                  <p className={`text-sm ${debt.isPaid ? 'text-green-600' : 'text-red-600'}`}>
-                    {debt.isPaid ? 'Pagado' : 'Pendiente'}
-                  </p>
+                <div className="text-right flex items-center gap-3">
+                  <div>
+                    <p className="font-bold text-lg">${Number(debt.amount).toLocaleString()}</p>
+                    <p className={`text-sm ${debt.isPaid ? 'text-green-600' : 'text-red-600'}`}>
+                      {debt.isPaid ? 'Pagado' : 'Pendiente'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteDebt(debt.id)}
+                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Eliminar deuda"
+                  >
+                    <Trash2 size={20} />
+                  </button>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+      ) : (
+        <Card className="mt-4">
+          <p className="text-center text-gray-500">No hay deudas registradas</p>
+        </Card>
       )}
     </div>
   );

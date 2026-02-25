@@ -110,6 +110,16 @@ export const api = {
       body: JSON.stringify({ amount, notes })
     })
   },
+  deleteDebt: async (debtId: number): Promise<{ success: boolean }> => {
+    return await request<{ success: boolean }>(`/debts/${debtId}`, {
+      method: 'DELETE'
+    })
+  },
+  deleteClient: async (clientId: number): Promise<{ success: boolean }> => {
+    return await request<{ success: boolean }>(`/clients/${clientId}`, {
+      method: 'DELETE'
+    })
+  },
   // Summary
   getSummary: async (): Promise<Summary> => {
     const res = await request<{ summary: Summary }>('/summary')

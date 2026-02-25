@@ -17,6 +17,7 @@ const DebtsPage = lazy(() => import('./pages/DebtsPage'));
 const AddDebtPage = lazy(() => import('./pages/AddDebtPage'));
 const BusinessPage = lazy(() => import('./pages/BusinessPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ClientList = lazy(() => import('./components/clients/ClientList'));
 
 function AppContent() {
   const { state, login, register } = useAuth();
@@ -106,6 +107,7 @@ function AppContent() {
           <Route path="/" element={<HomePage />} />
           <Route path="/debts" element={<DebtsPage />} />
           <Route path="/add-debt" element={<AddDebtPage />} />
+          <Route path="/clients" element={<ClientList />} />
           <Route path="/wallets" element={<WalletsPage />} />
           <Route path="/business" element={<BusinessPage />} />
           <Route path="/summary" element={<BusinessPage />} />

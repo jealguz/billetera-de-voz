@@ -186,7 +186,23 @@ export const storageService = {
   },
 
   async deleteDebt(id: string) {
-    console.log('Delete debt not implemented via API:', id);
+    try {
+      await api.deleteDebt(Number(id));
+      console.log('✅ Deuda eliminada:', id);
+    } catch (error) {
+      console.error('Error deleting debt:', error);
+      throw error;
+    }
+  },
+
+  async deleteClient(id: string) {
+    try {
+      await api.deleteClient(Number(id));
+      console.log('✅ Cliente eliminado:', id);
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw error;
+    }
   },
 
   async updateDebt(id: string, data: any) {

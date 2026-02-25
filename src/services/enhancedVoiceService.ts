@@ -988,6 +988,10 @@ case 'show_summary':
           success = await this.handleCreateClient(parsed);
           break;
 
+        case 'delete_client':
+          success = await this.handleDeleteClient(parsed);
+          break;
+
 
 
         default:
@@ -1238,6 +1242,34 @@ case 'show_summary':
       throw error;
     }
   }
+
+  private async handleDeleteClient(parsed: ParsedCommand): Promise<boolean> {
+    const { person } = parsed.entities;
+
+    if (!person) {
+      throw new Error('¿Qué cliente quieres eliminar?');
+    }
+
+    try {
+      const client = await storageService.getClientByName(person);
+      
+      if (!client) {
+        throw new Error(`${person} no está registrado como cliente`);
+      }
+
+      await api.deleteClient(client.id);
+      console.log('✅ Cliente eliminado:', person);
+      
+      // Guardar el nombre para el mensaje de respuesta
+      this._lastDeletedClient = person;
+      return true;
+    } catch (error: any) {
+      console.error('Error eliminando cliente:', error);
+      throw error;
+    }
+  }
+  
+  private _lastDeletedClient: string = '';
 
   // ============ MANEJO DE CONFIRMACIONES (CORREGIDO CON ASYNC/AWAIT) ============
 

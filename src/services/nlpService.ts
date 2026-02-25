@@ -9,6 +9,7 @@ export type Intent =
   | 'query_debt'
   | 'show_summary'
   | 'create_client'
+  | 'delete_client'
   | 'query_payment_history'
   | 'query_last_payment'
   | 'query_overdue_debts'
@@ -1591,6 +1592,14 @@ private intentKeywords = {
     if (/(?:limpiar|borrar|eliminar|quitar)\s+(?:deudas\s+)?(?:pagadas|canceladas|saldadas|liquidadas)/i.test(normalizedText)) {
       console.log('✅ Intención: clear_debts');
       return 'clear_debts';
+    }
+
+    // 5b. "Eliminar cliente" - NUEVO
+    if (/(?:elimina|borrar|quitar|eliminar)\s+(?:al\s+)?(?:cliente\s+)?(.+)/i.test(normalizedText) ||
+      /(.+)\s+(?:ya\s+)?(?:no\s+)?(?:me\s+)?(?:debe|nada|pendiente)/i.test(normalizedText) ||
+      /(.+)\s+(?:está\s+)?(?:cancelado|saldado|pagado|quitado)/i.test(normalizedText)) {
+      console.log('✅ Intención: delete_client');
+      return 'delete_client';
     }
 
     if (/(?:resumen\s+(?:de\s+)?mi\s+negocio|estad[ií]sticas?\s+de\s+clientes?|clientes?\s+con\s+deuda|clientes?\s+al\s+d[ií]a|reporte\s+de\s+negocio)/i.test(normalizedText)) {
