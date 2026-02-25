@@ -214,8 +214,11 @@ const Header: React.FC = () => {
   };
 
   const handleExportData = async () => {
+    console.log('📤 Iniciando exportación...');
+    toast.loading('Exportando datos...', { icon: '📤' });
     try {
       const data = await api.exportData();
+      console.log('📤 Datos exportados:', data);
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -230,7 +233,7 @@ const Header: React.FC = () => {
       toast.success(`✅ Exportado: ${data.clients.length} clientes, ${data.debts.length} deudas`);
     } catch (error) {
       console.error('Error exporting data:', error);
-      toast.error('Error al exportar datos');
+      toast.error('Error al exportar datos: ' + (error as Error).message);
     }
   };
 
@@ -238,12 +241,17 @@ const Header: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
     
+    console.log('📥 Archivo seleccionado:', file.name);
+    toast.loading('Importando datos...', { icon: '📥' });
+    
     try {
       const text = await file.text();
       const data = JSON.parse(text);
       
+      console.log('📊 Datos parseados:', data);
+      
       if (!data.clients || !data.debts) {
-        toast.error('Archivo de backup inválido');
+        toast.error('Archivo de backup inválido. Falta clients o debts.');
         return;
       }
       
@@ -253,6 +261,8 @@ const Header: React.FC = () => {
         payments: data.payments || []
       });
       
+      console.log('✅ Resultado:', result);
+      
       if (result.success) {
         toast.success(result.message);
         setTimeout(() => window.location.reload(), 1500);
@@ -260,8 +270,8 @@ const Header: React.FC = () => {
         toast.error(result.message);
       }
     } catch (error) {
-      console.error('Error importing data:', error);
-      toast.error('Error al importar datos');
+      console.error('❌ Error importing data:', error);
+      toast.error('Error al importar datos: ' + (error as Error).message);
     }
     
     event.target.value = '';
