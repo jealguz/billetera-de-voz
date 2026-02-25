@@ -157,11 +157,6 @@ const Header: React.FC = () => {
     </div>
   );
 
-  // Los datos ahora están en la nube, no necesitamos localStorage
-  useEffect(() => {
-    setLastBackup('En la nube');
-  }, []);
-
   // Función para detener todos los previews
   const stopAllPreviews = () => {
     if (window.speechSynthesis.speaking) {
