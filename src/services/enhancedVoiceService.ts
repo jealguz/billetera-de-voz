@@ -876,7 +876,6 @@ private cleanTextForSpeech(text: string): string {
         case 'add_debt':
           success = await this.handleAddDebt(parsed);
           if (success) {
-            // CAMBIADO: Ahora es async/await
             data = await storageService.getSummary();
           }
           break;
@@ -884,7 +883,6 @@ private cleanTextForSpeech(text: string): string {
         case 'add_payment':
           success = await this.handleAddPayment(parsed);
           if (success && parsed.entities.person) {
-            // CAMBIADO: Ahora es async/await
             data = await storageService.getClientSummary(parsed.entities.person);
           }
           break;
@@ -1096,22 +1094,23 @@ case 'show_summary':
     }
 
     try {
-      // Buscar cliente (priorizar los que tienen deudas pendientes)
-      const client = await this.getClientByName(person, true);
-      
-      if (!client) {
-        throw new Error(`${person} no está registrado como cliente`);
-      }
-
-      // Obtener deudas del cliente
+      // OPTIMIZADO: No buscar cliente de nuevo, usar los datos ya obtenidos
+      // Buscar cliente en las deudas ya cargadas
       const debts = await api.getDebts();
       console.log('🔍 handleAddPayment - deudas:', JSON.stringify(debts, null, 2));
-      console.log('🔍 handleAddPayment - client.id:', client.id);
       
-      // PostgreSQL devuelve clientid e ispaid en minúsculas
-      const clientDebts = debts.filter((d: any) => 
-        Number(d.clientid) === Number(client.id) && !d.ispaid
-      );
+      // Buscar cliente por nombre en las deudas
+      const normalizedPerson = person.toLowerCase().trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      
+      // Buscar deudas de este cliente
+      const clientDebts = debts.filter((d: any) => {
+        const debtClientName = (d.clientname || '').toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '');
+        return debtClientName.includes(normalizedPerson) && !d.ispaid;
+      });
       
       console.log('🔍 handleAddPayment - deudas del cliente:', clientDebts);
 
@@ -1121,7 +1120,9 @@ case 'show_summary':
 
       // Pagar la primera deuda pendiente (o la más antigua)
       const debt = clientDebts[0];
+      console.log('🔍 handleAddPayment - pagando deuda:', debt.id, 'monto:', amount);
       await api.payDebt(debt.id, amount, 'Pago registrado por voz');
+      console.log('✅ Pago registrado exitosamente');
 
       return true;
     } catch (error: any) {
