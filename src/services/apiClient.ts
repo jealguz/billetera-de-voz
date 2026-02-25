@@ -139,6 +139,22 @@ export const api = {
   getUserCount: async (): Promise<number> => {
     const res = await request<{ count: number }>('/users/count')
     return res.count
+  },
+  // Delete data
+  deleteAllDebts: async (): Promise<{ success: boolean; message: string }> => {
+    return await request<{ success: boolean; message: string }>('/data/debts', {
+      method: 'DELETE'
+    })
+  },
+  deleteAllPayments: async (): Promise<{ success: boolean; message: string }> => {
+    return await request<{ success: boolean; message: string }>('/data/payments', {
+      method: 'DELETE'
+    })
+  },
+  deleteAllData: async (): Promise<{ success: boolean; message: string }> => {
+    return await request<{ success: boolean; message: string }>('/data/all', {
+      method: 'DELETE'
+    })
   }
 }
 

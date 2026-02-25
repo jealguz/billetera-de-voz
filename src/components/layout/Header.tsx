@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { RotateCcw, LogOut, Download, FilterIcon, Volume2, Play, Zap, Sparkles, VolumeX, Volume, Settings, Menu, X } from 'lucide-react';
 import { useVoiceContext } from '../../context/VoiceContext';
 import { userService } from '../../services/userService';
+import { api } from '../../services/apiClient';
 import { enhancedVoiceService, VoiceInfo, VoicePersonality, VoiceSettings } from '../../services/enhancedVoiceService';
 import { toast } from 'react-hot-toast';
 
@@ -21,7 +22,7 @@ const Header: React.FC = () => {
   const [previewText, setPreviewText] = useState<string>('Hola, soy tu asistente de voz. ¿Te gusta cómo sueno?');
   const [showPreviewOptions, setShowPreviewOptions] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
-  const [isResetting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Estado para menú móvil
   
@@ -228,11 +229,44 @@ const Header: React.FC = () => {
     toast.success('✅ Tus datos están seguros en la nube');
   };
 
-  // FUNCIONES DE RESET - Ya no aplican con DB en la nube
   const handleResetConfirm = async () => {
-    toast.error('Para eliminar datos contacta al administrador');
+    if (!resetType) return;
+    
+    setIsResetting(true);
+    
+    try {
+      let result: { success: boolean; message: string };
+      
+      switch (resetType) {
+        case 'debts':
+          result = await api.deleteAllDebts();
+          break;
+        case 'payments':
+          result = await api.deleteAllPayments();
+          break;
+        case 'all':
+          result = await api.deleteAllData();
+          break;
+        default:
+          throw new Error('Tipo de reset inválido');
+      }
+      
+      if (result.success) {
+        toast.success(result.message || 'Datos eliminados correctamente');
+        window.location.reload();
+      } else {
+        toast.error(result.message || 'Error al eliminar datos');
+      }
+    } catch (error) {
+      console.error('Error al eliminar datos:', error);
+      toast.error('Error al conectar con el servidor');
+    } finally {
+      setIsResetting(false);
+    }
+    
     setShowResetModal(false);
     setResetType(null);
+    setConfirmStep(1);
   };
 
   const handleResetCancel = () => {
