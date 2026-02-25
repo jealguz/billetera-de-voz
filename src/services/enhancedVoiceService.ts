@@ -1105,7 +1105,15 @@ case 'show_summary':
 
       // Obtener deudas del cliente
       const debts = await api.getDebts();
-      const clientDebts = debts.filter(d => d.clientId === client.id && !d.isPaid);
+      console.log('🔍 handleAddPayment - deudas:', JSON.stringify(debts, null, 2));
+      console.log('🔍 handleAddPayment - client.id:', client.id);
+      
+      // PostgreSQL devuelve clientid e ispaid en minúsculas
+      const clientDebts = debts.filter((d: any) => 
+        Number(d.clientid) === Number(client.id) && !d.ispaid
+      );
+      
+      console.log('🔍 handleAddPayment - deudas del cliente:', clientDebts);
 
       if (clientDebts.length === 0) {
         throw new Error(`${person} no tiene deudas pendientes`);
