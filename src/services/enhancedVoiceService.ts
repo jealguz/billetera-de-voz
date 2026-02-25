@@ -551,12 +551,23 @@ private cleanTextForSpeech(text: string): string {
 
   startListening(): Promise<string> {
     return new Promise((resolve, reject) => {
+      console.log('🎤 Intentando iniciar reconocimiento de voz...');
+      console.log('🎤 ¿Es soportado?:', this.isSupported);
+      
       if (!this.isSupported) {
+        console.error('❌ Voz no soportada en este navegador');
         reject('El reconocimiento de voz no está disponible en tu navegador');
         return;
       }
 
       const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      
+      if (!SpeechRecognition) {
+        console.error('❌ SpeechRecognition no encontrado');
+        reject('El reconocimiento de voz no está disponible en tu navegador');
+        return;
+      }
+      
       this.recognition = new SpeechRecognition();
 
       this.recognition.lang = 'es-ES';
@@ -565,16 +576,34 @@ private cleanTextForSpeech(text: string): string {
       this.recognition.maxAlternatives = 1;
 
       this.recognition.onresult = (event: any) => {
+        console.log('🎤 Resultado recibido:', event);
         let transcript = event.results[0][0].transcript;
+        console.log('🎤 Transcripción original:', transcript);
         transcript = this.correctTranscript(transcript);
+        console.log('🎤 Transcripción corregida:', transcript);
         resolve(transcript);
       };
 
       this.recognition.onerror = (event: any) => {
+        console.error('❌ Error de reconocimiento:', event.error);
         reject(event.error);
       };
 
-      this.recognition.start();
+      this.recognition.onstart = () => {
+        console.log('🎤 Reconocimiento iniciado');
+      };
+
+      this.recognition.onend = () => {
+        console.log('🎤 Reconocimiento terminado');
+      };
+
+      try {
+        this.recognition.start();
+        console.log('🎤 Reconocimiento started');
+      } catch (error) {
+        console.error('❌ Error al iniciar reconocimiento:', error);
+        reject(error);
+      }
     });
   }
 
@@ -1013,25 +1042,30 @@ case 'show_summary':
     }
 
     const rawText = parsed.rawText.toLowerCase();
-    //const isOwing = rawText.includes('yo debo') ||
-      rawText.includes('le debo') ||
-      rawText.includes('debo a');
+    console.log('🔍 handleAddDebt - Persona:', person, 'Monto:', amount, 'Descripción:', description);
+    console.log('🔍 handleAddDebt - Raw text:', rawText);
 
     try {
       // Buscar o crear cliente
+      console.log('🔍 handleAddDebt - Buscando cliente:', person);
       let client = await this.getClientByName(person);
+      console.log('🔍 handleAddDebt - Cliente encontrado:', client);
       
       if (!client) {
+        console.log('🔍 handleAddDebt - Creando nuevo cliente:', this.capitalizeName(person));
         // Crear cliente
         client = await api.createClient(this.capitalizeName(person));
+        console.log('🔍 handleAddDebt - Cliente creado:', client);
       }
 
       // Crear deuda
+      console.log('🔍 handleAddDebt - Creando deuda para cliente ID:', client.id);
       await api.createDebt(
         client.id,
         amount,
         description || 'Deuda registrada por voz'
       );
+      console.log('🔍 handleAddDebt - Deuda creada exitosamente');
 
       return true;
     } catch (error: any) {

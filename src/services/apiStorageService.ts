@@ -14,10 +14,11 @@ export const storageService = {
   async getDebts() {
     try {
       const debts = await api.getDebts();
+      console.log('📦 getDebts - Datos recibidos:', debts);
       return debts.map((d: any) => ({
         id: d.id,
         type: 'owed',
-        person: d.clientName || 'Cliente',
+        person: d.clientName || d.client?.name || 'Cliente',
         clientId: d.clientId,
         amount: Number(d.amount),
         paidAmount: Number(d.paidAmount || 0),
@@ -104,12 +105,15 @@ export const storageService = {
   async getClientByName(name: string) {
     try {
       const clients = await api.getClients();
+      console.log('🔍 getClientByName - clientes obtenidos:', clients);
       const normalizedName = name.toLowerCase().trim();
       
       const client = clients.find((c: any) => 
         c.name.toLowerCase() === normalizedName ||
         c.name.toLowerCase().includes(normalizedName)
       );
+
+      console.log('🔍 getClientByName - cliente encontrado:', client);
 
       if (!client) return null;
 

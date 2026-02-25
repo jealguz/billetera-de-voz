@@ -14,11 +14,17 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
   }
+  
+  console.log('🌐 API Request:', path, 'Token:', authToken ? 'presente' : 'NO PRESENTE');
+  
   const res = await fetch(`${API_BASE}${path}`, {
     headers,
     credentials: 'include',
     ...options
   })
+  
+  console.log('🌐 API Response:', path, 'Status:', res.status);
+  
   if (!res.ok) {
     // Try to extract error message
     let msg = 'Network error'
@@ -28,6 +34,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     } catch {
       msg = res.statusText
     }
+    console.error('🌐 API Error:', msg);
     throw new Error(msg)
   }
   // If there is no content, return undefined
