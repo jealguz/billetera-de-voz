@@ -374,7 +374,7 @@ private intentKeywords = {
 
   add_payment: [
     // ============ PAGOS RECIBIDOS (Me pagó...) ============
-    'me pagó', 'me pago', 'me abonó', 'me abono', 'me canceló', 'me cancelo',
+    'me pagó', 'me pago', 'me abonó', 'me abono', 'me abona', 'me canceló', 'me cancelo',
     'me saldó', 'me saldo', 'me liquidó', 'me liquido', 'me dio el dinero',
     'me entregó', 'me entrego', 'me pagó la deuda', 'me pago la deuda',
     'me pagó el fiado', 'me pago el fiado', 'me pagó el préstamo', 'me pago el prestamo',
@@ -382,7 +382,7 @@ private intentKeywords = {
     'me pagó el saldo', 'me pago el saldo', 'me dio plata', 'me pagó plata', 'me pago plata',
 
     // ============ PAGOS REALIZADOS (Le pagué...) ============
-    'le pagué', 'le pague', 'le aboné', 'le abone', 'le cancelé', 'le cancele',
+    'le pagué', 'le pague', 'le aboné', 'le abone', 'le abona', 'le cancelé', 'le cancele',
     'le saldé', 'le salde', 'le liquidé', 'le liquide', 'le di el dinero',
     'le entregué', 'le entregue', 'pagué la deuda', 'pague la deuda',
     'pagué el fiado', 'pague el fiado', 'pagué el préstamo', 'pague el prestamo',
@@ -1999,6 +1999,7 @@ private intentKeywords = {
 
       'abone': 'aboné',
       'abono': 'abonó',
+      'abona': 'abonó',
       'cancele': 'cancelé',
       'cancelo': 'canceló',
       'salde': 'saldé',
