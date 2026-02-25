@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, X, Check } from 'lucide-react';
 import { storageService } from '../../services/apiStorageService';
 import api from '../../services/apiClient';
 import Card from '../ui/Card';
@@ -7,6 +7,7 @@ import Card from '../ui/Card';
 const DebtList: React.FC = () => {
   const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteConfirm, setDeleteConfirm] = useState<{show: boolean, debtId: number | null, debtName: string}>({show: false, debtId: null, debtName: ''});
 
   const loadDebts = useCallback(async () => {
     setLoading(true);
@@ -27,15 +28,24 @@ const DebtList: React.FC = () => {
     loadDebts();
   }, [loadDebts]);
 
-  const handleDeleteDebt = async (debtId: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta deuda?')) return;
+  const handleDeleteDebt = (debtId: number, debtName: string) => {
+    setDeleteConfirm({show: true, debtId, debtName});
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteConfirm.debtId) return;
     
     try {
-      await api.deleteDebt(debtId);
+      await api.deleteDebt(deleteConfirm.debtId);
+      setDeleteConfirm({show: false, debtId: null, debtName: ''});
       loadDebts();
     } catch (error) {
       console.error('Error eliminando deuda:', error);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({show: false, debtId: null, debtName: ''});
   };
 
   if (loading) {
@@ -50,6 +60,32 @@ const DebtList: React.FC = () => {
 
   return (
     <div className="p-4">
+      {/* Modal de confirmación */}
+      {deleteConfirm.show && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-sm w-full">
+            <h3 className="font-bold text-lg mb-2">Confirmar eliminación</h3>
+            <p className="text-gray-600 mb-4">
+              ¿Estás seguro de eliminar la deuda de <strong>{deleteConfirm.debtName}</strong>?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={cancelDelete}
+                className="flex-1 py-2 px-4 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <X size={18} /> Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+              >
+                <Check size={18} /> Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card>
         <div className="text-center py-8">
           <p className="text-gray-600 mb-4">
@@ -81,7 +117,7 @@ const DebtList: React.FC = () => {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleDeleteDebt(debt.id)}
+                    onClick={() => handleDeleteDebt(debt.id, debt.clientName || 'Cliente')}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Eliminar deuda"
                   >
