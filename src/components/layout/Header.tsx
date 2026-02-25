@@ -21,7 +21,6 @@ const Header: React.FC = () => {
   const [personalities, setPersonalities] = useState<VoicePersonality[]>([]);
   const [previewText, setPreviewText] = useState<string>('Hola, soy tu asistente de voz. ¿Te gusta cómo sueno?');
   const [showPreviewOptions, setShowPreviewOptions] = useState(false);
-  const [lastBackup, setLastBackup] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
   const [voiceSettings, setVoiceSettings] = useState<VoiceSettings>(enhancedVoiceService.getVoiceSettings());
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Estado para menú móvil
@@ -219,14 +218,58 @@ const Header: React.FC = () => {
     handlePreviewVoice(voice, randomText);
   };
 
-  // FUNCIONES DE BACKUP/EXPORT - YA NO NECESARIO CON DATABASE EN LA NUBE
-  // Los datos ahora se almacenan en el servidor
   const handleExportData = async () => {
-    toast.success('✅ Tus datos están seguros en la nube');
+    try {
+      const data = await api.exportData();
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wallet-voice-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success(`✅ Exportado: ${data.clients.length} clientes, ${data.debts.length} deudas`);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast.error('Error al exportar datos');
+    }
   };
 
   const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    toast.success('✅ Tus datos están seguros en la nube');
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      
+      if (!data.clients || !data.debts) {
+        toast.error('Archivo de backup inválido');
+        return;
+      }
+      
+      const result = await api.importData({
+        clients: data.clients,
+        debts: data.debts,
+        payments: data.payments || []
+      });
+      
+      if (result.success) {
+        toast.success(result.message);
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Error importing data:', error);
+      toast.error('Error al importar datos');
+    }
+    
+    event.target.value = '';
   };
 
   const handleResetConfirm = async () => {
@@ -531,10 +574,10 @@ const Header: React.FC = () => {
             
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
               <p className="text-sm text-blue-800">
-                💾 <strong>Último backup:</strong> {lastBackup || 'Nunca'}
+                📤 <strong>Exportar:</strong> Descarga todos tus datos en un archivo JSON
               </p>
               <p className="text-sm text-green-800 mt-1">
-                ✅ <strong>Datos seguros:</strong> Encriptados con AES-256, offline, en tu dispositivo.
+                📥 <strong>Importar:</strong> Restaura datos desde un archivo backup
               </p>
             </div>
             

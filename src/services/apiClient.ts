@@ -155,6 +155,16 @@ export const api = {
     return await request<{ success: boolean; message: string }>('/data/all', {
       method: 'DELETE'
     })
+  },
+  // Export/Import data
+  exportData: async (): Promise<{ exportedAt: string; userEmail: string; clients: any[]; debts: any[]; payments: any[] }> => {
+    return await request<{ exportedAt: string; userEmail: string; clients: any[]; debts: any[]; payments: any[] }>('/export')
+  },
+  importData: async (data: { clients: any[]; debts: any[]; payments: any[] }): Promise<{ success: boolean; message: string }> => {
+    return await request<{ success: boolean; message: string }>('/import', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    })
   }
 }
 
