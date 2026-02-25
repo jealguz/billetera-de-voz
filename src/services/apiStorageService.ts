@@ -14,11 +14,12 @@ export const storageService = {
   async getDebts() {
     try {
       const debts = await api.getDebts();
-      console.log('📦 getDebts - Datos recibidos:', debts);
+      console.log('📦 getDebts - Datos recibidos:', JSON.stringify(debts, null, 2));
       return debts.map((d: any) => ({
         id: d.id,
         type: 'owed',
         person: d.clientName || d.client?.name || 'Cliente',
+        clientName: d.clientName || 'Cliente sin nombre',
         clientId: d.clientId,
         amount: Number(d.amount),
         paidAmount: Number(d.paidAmount || 0),
