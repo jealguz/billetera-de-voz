@@ -32,18 +32,18 @@ const BalanceCards: React.FC = () => {
     };
   }, []);
 
-  // Deudas que ME deben (monto positivo)
-  const debtsOwedToMe = debts.filter(d => !d.isPaid && Number(d.amount) > 0);
-  const totalOwedToMe = debtsOwedToMe.reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
+  // Deudas que ME deben (monto positivo) - usar pendingAmount
+  const debtsOwedToMe = debts.filter(d => d.status !== 'paid' && Number(d.amount) > 0);
+  const totalOwedToMe = debtsOwedToMe.reduce((sum, d) => sum + (Number(d.pendingAmount) || 0), 0);
 
-  // Deudas que YO debo (monto negativo)
-  const debtsIOwe = debts.filter(d => !d.isPaid && Number(d.amount) < 0);
-  const totalIOwe = debtsIOwe.reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
+  // Deudas que YO debo (monto negativo) - usar pendingAmount
+  const debtsIOwe = debts.filter(d => d.status !== 'paid' && Number(d.amount) < 0);
+  const totalIOwe = debtsIOwe.reduce((sum, d) => sum + (Number(d.pendingAmount) || 0), 0);
 
   // Total cobrado (deudas pagadas)
   const totalPaid = debts
-    .filter(d => d.isPaid)
-    .reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
+    .filter(d => d.status === 'paid')
+    .reduce((sum, d) => sum + (Number(d.paidAmount) || 0), 0);
 
   if (loading) {
     return (

@@ -105,15 +105,18 @@ const DebtList: React.FC = () => {
               <div className="flex justify-between items-center">
                 <div className="flex-1">
                   <p className="font-medium">
-                    {debt.clientName || 'Cliente indefinido'} (ID: {debt.clientId})
+                    {debt.clientName || 'Cliente indefinido'}
                   </p>
                   <p className="text-sm text-gray-500">{debt.description || 'Sin descripción'}</p>
+                  {debt.paidAmount > 0 && (
+                    <p className="text-xs text-green-600">Pagado: ${Number(debt.paidAmount).toLocaleString()}</p>
+                  )}
                 </div>
                 <div className="text-right flex items-center gap-3">
                   <div>
-                    <p className="font-bold text-lg">${Number(debt.amount).toLocaleString()}</p>
-                    <p className={`text-sm ${debt.isPaid ? 'text-green-600' : 'text-red-600'}`}>
-                      {debt.isPaid ? 'Pagado' : 'Pendiente'}
+                    <p className="font-bold text-lg">${Number(debt.pendingAmount || debt.amount).toLocaleString()}</p>
+                    <p className={`text-sm ${debt.status === 'paid' ? 'text-green-600' : 'text-red-600'}`}>
+                      {debt.status === 'paid' ? 'Pagado' : 'Pendiente'}
                     </p>
                   </div>
                   <button

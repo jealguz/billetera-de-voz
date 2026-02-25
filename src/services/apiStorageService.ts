@@ -15,21 +15,27 @@ export const storageService = {
     try {
       const debts = await api.getDebts();
       console.log('📦 getDebts - Datos recibidos:', JSON.stringify(debts, null, 2));
-      return debts.map((d: any) => ({
-        id: d.id,
-        type: 'owed',
-        // PostgreSQL puede devolver nombres de columnas en minúsculas
-        person: d.clientname || d.clientName || d.client?.name || 'Cliente',
-        clientName: d.clientname || d.clientName || d.client?.name || 'Cliente sin nombre',
-        clientId: d.clientid || d.clientId,
-        amount: Number(d.amount),
-        paidAmount: Number(d.paidamount || d.paidAmount || 0),
-        description: d.description || '',
-        date: d.createdat || d.createdAt,
-        status: d.ispaid || d.isPaid ? 'paid' : 'pending',
-        createdAt: d.createdat || d.createdAt,
-        updatedAt: d.updatedat || d.updatedAt
-      }));
+      return debts.map((d: any) => {
+        const originalAmount = Number(d.amount);
+        const paidAmount = Number(d.paidamount || d.paidAmount || 0);
+        const isPaid = d.ispaid || d.isPaid || paidAmount >= Math.abs(originalAmount);
+        
+        return {
+          id: d.id,
+          type: originalAmount < 0 ? 'owing' : 'owed',
+          person: d.clientname || d.clientName || d.client?.name || 'Cliente',
+          clientName: d.clientname || d.clientName || d.client?.name || 'Cliente sin nombre',
+          clientId: d.clientid || d.clientId,
+          amount: originalAmount, // Monto original
+          pendingAmount: Math.abs(originalAmount) - paidAmount, // Monto pendiente
+          paidAmount: paidAmount,
+          description: d.description || '',
+          date: d.createdat || d.createdAt,
+          status: isPaid ? 'paid' : 'pending',
+          createdAt: d.createdat || d.createdAt,
+          updatedAt: d.updatedat || d.updatedAt
+        };
+      });
     } catch (error) {
       console.error('Error getting debts:', error);
       return [];
@@ -55,26 +61,76 @@ export const storageService = {
 
   async getBusinessSummary() {
     try {
-      const [summary, clients, debts] = await Promise.all([
-        api.getSummary(),
+      const [clients, debts] = await Promise.all([
         api.getClients(),
         api.getDebts()
       ]);
       
-      const paidDebts = debts.filter((d: any) => d.isPaid);
+      console.log('📊 getBusinessSummary - clientes:', clients.length, 'deudas:', debts.length);
+      
+      // Calcular totales correctamente usando paidAmount del backend
+      let totalOwedToMe = 0;
+      let totalIOwe = 0;
+      let pendingDebts = 0;
+      let paidDebts = 0;
+      
+      const clientTotals: { [key: number]: { name: string, total: number, paid: number } } = {};
+      
+      debts.forEach((d: any) => {
+        const originalAmount = Number(d.amount);
+        const paidAmount = Number(d.paidamount || d.paidAmount || 0);
+        const pendingAmount = Math.abs(originalAmount) - paidAmount;
+        
+        if (originalAmount > 0) {
+          // Me deben
+          totalOwedToMe += pendingAmount;
+          if (pendingAmount > 0) pendingDebts++;
+        } else if (originalAmount < 0) {
+          // Yo debo
+          totalIOwe += pendingAmount;
+          if (pendingAmount > 0) pendingDebts++;
+        }
+        
+        if (paidAmount > 0 && pendingAmount <= 0) {
+          paidDebts++;
+        }
+        
+        // Acumular por cliente
+        const clientId = d.clientid || d.clientId;
+        if (!clientTotals[clientId]) {
+          clientTotals[clientId] = { name: d.clientname || 'Cliente', total: 0, paid: 0 };
+        }
+        clientTotals[clientId].total += Math.abs(originalAmount);
+        clientTotals[clientId].paid += paidAmount;
+      });
+      
+      // Top deudores
+      const topDebtors = Object.entries(clientTotals)
+        .map(([clientId, data]) => ({
+          clientId: Number(clientId),
+          clientName: data.name,
+          totalDebt: data.total - data.paid,
+          totalPaid: data.paid
+        }))
+        .filter(c => c.totalDebt > 0)
+        .sort((a, b) => b.totalDebt - a.totalDebt)
+        .slice(0, 10);
+      
+      console.log('📊 getBusinessSummary - totalOwedToMe:', totalOwedToMe, 'totalIOwe:', totalIOwe);
       
       return {
         totalClients: clients.length,
         activeClients: clients.length,
-        clientsWithDebt: summary.pendingDebts || 0,
-        totalOwed: summary.totalOwed || 0,
-        topDebtors: [],
-        pendingDebts: summary.pendingDebts || 0,
-        paidDebts: paidDebts.length
+        clientsWithDebt: pendingDebts,
+        totalOwed: totalOwedToMe,
+        totalOwing: totalIOwe,
+        topDebtors,
+        pendingDebts,
+        paidDebts
       };
     } catch (error) {
       console.error('Error getting business summary:', error);
-      return { totalClients: 0, activeClients: 0, clientsWithDebt: 0, totalOwed: 0, topDebtors: [], pendingDebts: 0, paidDebts: 0 };
+      return { totalClients: 0, activeClients: 0, clientsWithDebt: 0, totalOwed: 0, totalOwing: 0, topDebtors: [], pendingDebts: 0, paidDebts: 0 };
     }
   },
 
