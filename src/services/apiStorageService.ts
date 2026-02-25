@@ -178,7 +178,7 @@ export const storageService = {
 
   async getClientSummary(personName: string) {
     try {
-      const [clients, debts, summary] = await Promise.all([
+      const [clients, debts,] = await Promise.all([
         api.getClients(),
         api.getDebts(),
         api.getSummary()
