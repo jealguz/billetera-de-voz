@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { formatCurrency } from '../../utils/formatters';
-import { Debt as ApiDebt } from '../../types/api';
-import api from '../../services/apiClient';
+import { storageService } from '../../services/apiStorageService';
 
 const BalanceCards: React.FC = () => {
-  const [debts, setDebts] = useState<ApiDebt[]>([]);
+  const [debts, setDebts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
-        const loadedDebts = await api.getDebts();
+        const loadedDebts = await storageService.getDebts();
+        console.log('📦 BalanceCards - Deudas cargadas:', loadedDebts);
         setDebts(loadedDebts);
       } catch (error) {
         console.error('Error cargando deudas:', error);
@@ -32,13 +32,18 @@ const BalanceCards: React.FC = () => {
     };
   }, []);
 
-  const totalOwed = debts
-    .filter(d => !d.isPaid)
-    .reduce((sum, d) => sum + Number(d.amount), 0);
+  // Deudas que ME deben (monto positivo)
+  const debtsOwedToMe = debts.filter(d => !d.isPaid && Number(d.amount) > 0);
+  const totalOwedToMe = debtsOwedToMe.reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
 
+  // Deudas que YO debo (monto negativo)
+  const debtsIOwe = debts.filter(d => !d.isPaid && Number(d.amount) < 0);
+  const totalIOwe = debtsIOwe.reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
+
+  // Total cobrado (deudas pagadas)
   const totalPaid = debts
     .filter(d => d.isPaid)
-    .reduce((sum, d) => sum + Number(d.amount), 0);
+    .reduce((sum, d) => sum + Math.abs(Number(d.amount)), 0);
 
   if (loading) {
     return (
@@ -57,23 +62,34 @@ const BalanceCards: React.FC = () => {
     );
   }
 
-  const owedToMeCount = debts.filter(d => !d.isPaid).length;
-
   return (
     <div className="mb-6">
       <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* Me deben */}
         <div className="bg-gradient-to-br from-blue-600 to-blue-700 text-white p-6 rounded-2xl shadow-lg border border-blue-500/20">
-          <p className="text-sm opacity-90">Total pendiente</p>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwed)}</p>
+          <p className="text-sm opacity-90">Me deben</p>
+          <p className="text-2xl font-bold mt-1">{formatCurrency(totalOwedToMe)}</p>
           <p className="text-xs opacity-80 mt-2">
-            {owedToMeCount} {owedToMeCount === 1 ? 'deuda' : 'deudas'} pendiente{owedToMeCount !== 1 ? 's' : ''}
+            {debtsOwedToMe.length} cliente{debtsOwedToMe.length !== 1 ? 's' : ''}
           </p>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-600 to-slate-700 text-white p-6 rounded-2xl shadow-lg border border-slate-500/20">
-          <p className="text-sm opacity-90">Total cobrado</p>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(totalPaid)}</p>
+        {/* Yo debo */}
+        <div className="bg-gradient-to-br from-red-600 to-red-700 text-white p-6 rounded-2xl shadow-lg border border-red-500/20">
+          <p className="text-sm opacity-90">Yo debo</p>
+          <p className="text-2xl font-bold mt-1">{formatCurrency(totalIOwe)}</p>
           <p className="text-xs opacity-80 mt-2">
+            {debtsIOwe.length} deuda{debtsIOwe.length !== 1 ? 's' : ''}
+          </p>
+        </div>
+      </div>
+
+      {/* Total cobrado */}
+      <div className="grid grid-cols-1 gap-4">
+        <div className="bg-gradient-to-br from-slate-600 to-slate-700 text-white p-4 rounded-2xl shadow-lg border border-slate-500/20">
+          <p className="text-sm opacity-90">Total cobrado</p>
+          <p className="text-xl font-bold mt-1">{formatCurrency(totalPaid)}</p>
+          <p className="text-xs opacity-80 mt-1">
             {debts.filter(d => d.isPaid).length} pagada{debts.filter(d => d.isPaid).length !== 1 ? 's' : ''}
           </p>
         </div>

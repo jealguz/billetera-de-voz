@@ -1049,6 +1049,13 @@ case 'show_summary':
     console.log('🔍 handleAddDebt - Persona:', person, 'Monto:', amount, 'Descripción:', description);
     console.log('🔍 handleAddDebt - Raw text:', rawText);
 
+    // Detectar si es "yo le debo" (deuda que yo tengo)
+    const isOwing = rawText.includes('yo debo') ||
+      rawText.includes('le debo') ||
+      rawText.includes('debo a');
+    
+    const debtAmount = isOwing ? -Math.abs(amount) : Math.abs(amount);
+
     try {
       // Buscar o crear cliente
       console.log('🔍 handleAddDebt - Buscando cliente:', person);
@@ -1062,12 +1069,12 @@ case 'show_summary':
         console.log('🔍 handleAddDebt - Cliente creado:', client);
       }
 
-      // Crear deuda
-      console.log('🔍 handleAddDebt - Creando deuda para cliente ID:', client.id);
+      // Crear deuda (negativa si es "yo le debo")
+      console.log('🔍 handleAddDebt - Creando deuda para cliente ID:', client.id, 'Monto:', debtAmount, 'Tipo:', isOwing ? 'owing' : 'owed');
       await api.createDebt(
         client.id,
-        amount,
-        description || 'Deuda registrada por voz'
+        debtAmount,
+        description || (isOwing ? 'Deuda que debo' : 'Deuda registrada por voz')
       );
       console.log('🔍 handleAddDebt - Deuda creada exitosamente');
 
@@ -1299,17 +1306,19 @@ case 'show_summary':
             normalizedText.includes('debo a');
 
           try {
-            // CAMBIADO: Ahora es async/await
+            // Si es "yo le debo", guardamos el monto como negativo
+            const debtAmount = shouldBeOwing ? -Math.abs(amount) : Math.abs(amount);
+            
             await storageService.addDebt({
               type: shouldBeOwing ? 'owing' : 'owed',
               person: this.capitalizeName(person),
-              amount: amount,
-              description: description || 'Deuda registrada por voz',
+              amount: debtAmount,
+              description: description || (shouldBeOwing ? 'Deuda que debo' : 'Deuda registrada por voz'),
               date: new Date(),
               status: 'pending',
               paidAmount: 0,
             });
-            console.log('✅ Deuda creada con tipo:', shouldBeOwing ? 'owing' : 'owed');
+            console.log('✅ Deuda creada con tipo:', shouldBeOwing ? 'owing (YO DEBO)' : 'owed (ME DEBEN)', 'monto:', debtAmount);
           } catch (error: any) {
             console.error('❌ Error creando deuda:', error);
             throw error;

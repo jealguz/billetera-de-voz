@@ -1221,6 +1221,8 @@ private intentKeywords = {
         /\$?\s*(\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{2})?)/,
         // 118.000, 118,000, 118 000 (sin símbolo)
         /(\d{1,3}(?:[.,\s]\d{3})+(?:[.,]\d{2})?)(?:\s|$|pesos|dolares)/i,
+        // Números con coma como separador de miles: 200,000 o 200000
+        /(\d{1,3}(?:,\d{3})*(?:\.\d+)?|\d+)(?:\s|$|pesos|dolares)/i,
         // Números decimales: 118.50, 118,50
         /(\d+(?:[.,]\d{2}))(?:\s|$)/,
       ];
@@ -1232,23 +1234,27 @@ private intentKeywords = {
 
           let numberStr = match[1];
 
-          // Limpiar separadores de miles (puntos, comas, espacios)
-          numberStr = numberStr.replace(/[\s.,]/g, '');
+          // Manejar separador de miles (coma o punto)
+          // Si tiene coma y parece ser miles (más de 3 dígitos después de la coma)
+          if (numberStr.includes(',') && /,\d{3}/.test(numberStr)) {
+            // Es separador de miles: 200,000 -> 200000
+            numberStr = numberStr.replace(/,/g, '');
+          }
+          // Si tiene punto y parece ser miles (más de 3 dígitos después del punto)
+          else if (numberStr.includes('.') && /\.\d{3}/.test(numberStr)) {
+            // Es separador de miles: 200.000 -> 200000
+            numberStr = numberStr.replace(/\./g, '');
+          }
+          // Limpiar espacios
+          numberStr = numberStr.replace(/\s/g, '');
 
-          // Manejar decimales
-          if (match[1].includes('.') || match[1].includes(',')) {
-            // Si tiene exactamente un punto o coma que podría ser decimal
-            const hasSingleDecimal = (match[1].match(/[.,]/g) || []).length === 1;
-            const endsWithTwoDigits = /\d{2}$/.test(match[1]);
-
-            if (hasSingleDecimal && endsWithTwoDigits) {
-              // Es un decimal: 118.50 o 118,50
-              numberStr = match[1].replace(',', '.');
-              const num = parseFloat(numberStr);
-              if (!isNaN(num)) {
-                console.log('💰 Cantidad con decimales:', num);
-                return num;
-              }
+          // Manejar decimales (si tiene punto o coma al final con 2 dígitos)
+          if (/,\d{2}$/.test(numberStr) || /\.\d{2}$/.test(numberStr)) {
+            numberStr = numberStr.replace(',', '.');
+            const num = parseFloat(numberStr);
+            if (!isNaN(num)) {
+              console.log('💰 Cantidad con decimales:', num);
+              return num;
             }
           }
 
