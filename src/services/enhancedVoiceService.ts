@@ -45,6 +45,8 @@ export interface VoiceInfo {
   personality?: string;
   isVirtual?: boolean;
   baseVoiceURI?: string;
+  engine?: 'native' | 'premium';
+  provider?: string;
 }
 
 export interface VoicePersonality {
@@ -66,6 +68,157 @@ class EnhancedVoiceService {
   private synth = window.speechSynthesis;
   private currentSettings: VoiceSettings;
   private voicesLoaded: boolean = false;
+  private activeAudio: HTMLAudioElement | null = null;
+  private speechCancelled: boolean = false;
+
+  // Voces premium (red neuronal) sin necesidad de clave API. Se reproducen con un
+  // elemento <audio>, así que no requieren CORS. Si fallan, se usa la voz del sistema.
+  private premiumVoices: VoiceInfo[] = [
+    {
+      uri: 'premium:edge:es-ES-ElviraNeural',
+      name: 'Elvira Neural · España',
+      language: 'es-ES',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'female',
+      rating: 5,
+      description: 'Voz neuronal Microsoft (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-ES-AlvaroNeural',
+      name: 'Álvaro Neural · España',
+      language: 'es-ES',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'male',
+      rating: 5,
+      description: 'Voz neuronal masculina (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-MX-DaliaNeural',
+      name: 'Dalia Neural · México',
+      language: 'es-MX',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'female',
+      rating: 5,
+      description: 'Voz neuronal femenina (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-MX-JorgeNeural',
+      name: 'Jorge Neural · México',
+      language: 'es-MX',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'male',
+      rating: 5,
+      description: 'Voz neuronal masculina (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-US-PalomaNeural',
+      name: 'Paloma Neural · EE. UU.',
+      language: 'es-US',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'female',
+      rating: 5,
+      description: 'Voz neuronal femenina (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-CO-SalomeNeural',
+      name: 'Salomé Neural · Colombia',
+      language: 'es-CO',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'female',
+      rating: 5,
+      description: 'Voz neuronal colombiana (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-CO-GonzaloNeural',
+      name: 'Gonzalo Neural · Colombia',
+      language: 'es-CO',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'male',
+      rating: 5,
+      description: 'Voz neuronal colombiana (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:edge:es-AR-ElenaNeural',
+      name: 'Elena Neural · Argentina',
+      language: 'es-AR',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: true,
+      isGoogle: false,
+      isMicrosoft: true,
+      gender: 'female',
+      rating: 5,
+      description: 'Voz neuronal femenina (muy natural)',
+      engine: 'premium',
+      provider: 'Edge'
+    },
+    {
+      uri: 'premium:google:es',
+      name: 'Google Español',
+      language: 'es',
+      localService: false,
+      default: false,
+      isSpanish: true,
+      isNeural: false,
+      isGoogle: true,
+      isMicrosoft: false,
+      gender: 'female',
+      rating: 4,
+      description: 'Voz Google online (clara y natural)',
+      engine: 'premium',
+      provider: 'Google'
+    }
+  ];
 
   private voicePersonalities: VoicePersonality[] = [
     {
@@ -194,13 +347,14 @@ class EnhancedVoiceService {
   public getAllVoicesWithInfo(includeVirtual: boolean = true): VoiceInfo[] {
     const realVoices = this.getAvailableVoices();
     const realVoicesInfo = realVoices.map(voice => this.createVoiceInfo(voice));
+    const premiumInfo = this.premiumVoices.map(voice => ({ ...voice }));
 
     if (!includeVirtual) {
-      return realVoicesInfo.sort(this.sortVoices);
+      return [...premiumInfo, ...realVoicesInfo].sort(this.sortVoices);
     }
 
     const virtualVoices = this.createVirtualVoices(realVoicesInfo);
-    return [...virtualVoices, ...realVoicesInfo].sort(this.sortVoices);
+    return [...premiumInfo, ...virtualVoices, ...realVoicesInfo].sort(this.sortVoices);
   }
 
   private createVoiceInfo(voice: SpeechSynthesisVoice): VoiceInfo {
@@ -273,7 +427,7 @@ class EnhancedVoiceService {
     if (name.includes('neural')) rating += 2;
     if (name.includes('google')) rating += 1;
     if (name.includes('natural')) rating += 1;
-    if (voice.localService) rating += 1;
+    if (name.includes('premium')) rating += 1;
     if (voice.default) rating += 1;
     if (voice.lang.startsWith('es')) rating += 2;
     return Math.max(1, Math.min(5, rating));
@@ -372,6 +526,15 @@ class EnhancedVoiceService {
 
     if (!selectedVoice) return false;
 
+    if (selectedVoice.engine === 'premium') {
+      this.updateVoiceSettings({
+        voiceURI: selectedVoice.uri,
+        voiceName: selectedVoice.name,
+        language: selectedVoice.language
+      });
+      return true;
+    }
+
     if (selectedVoice.isVirtual && selectedVoice.baseVoiceURI) {
       const baseVoice = this.getAvailableVoices().find(v => v.voiceURI === selectedVoice.baseVoiceURI);
       if (baseVoice) {
@@ -399,6 +562,11 @@ class EnhancedVoiceService {
     return true;
   }
 
+  public resolveVoiceInfo(voiceURI: string | undefined): VoiceInfo | null {
+    if (!voiceURI) return null;
+    return this.getAllVoicesWithInfo().find(v => v.uri === voiceURI) || null;
+  }
+
   public setVoiceByName(voiceName: string): boolean {
     const voices = this.getAllVoicesWithInfo();
     const selectedVoice = voices.find(v => v.name === voiceName);
@@ -410,46 +578,231 @@ class EnhancedVoiceService {
 
   // ============ SÍNTESIS DE VOZ MEJORADA ============
 
-speak(text: string, options?: Partial<VoiceSettings>): Promise<void> {
-  return new Promise((resolve, reject) => {
+  speak(text: string, options?: Partial<VoiceSettings>): Promise<void> {
     if (!('speechSynthesis' in window)) {
-      reject('La síntesis de voz no está disponible en tu navegador');
+      return Promise.reject('La síntesis de voz no está disponible en tu navegador');
+    }
+
+    const settings = { ...this.currentSettings, ...options };
+
+    // Limpiar el texto para voz
+    const cleanText = this.cleanTextForSpeech(text);
+    if (!cleanText) {
+      return Promise.resolve();
+    }
+
+    // Detener cualquier reproducción previa (native o premium)
+    this.cancelSpeech();
+    // Nueva llamada: comenzar de cero
+    this.speechCancelled = false;
+
+    const voiceInfo = this.resolveVoiceInfo(settings.voiceURI);
+
+    // Motor premium (voces neuronales online) con fallback al sistema
+    if (voiceInfo && voiceInfo.engine === 'premium') {
+      return this.speakWithPremium(cleanText, voiceInfo, settings).catch((error) => {
+        console.warn('🎙️ Voz premium no disponible, usando voz del sistema:', error?.message || error);
+        return this.speakNative(cleanText, settings);
+      });
+    }
+
+    return this.speakNative(cleanText, settings);
+  }
+
+  private speakNative(text: string, settings: VoiceSettings): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (this.synth.speaking) {
+        this.synth.cancel();
+      }
+
+      setTimeout(() => {
+        try {
+          // Dividir en frases evita el corte de texto largo en Chrome
+          const chunks = this.splitTextIntoChunks(text, 140);
+          this.speakChunksNative(chunks, settings, resolve, reject);
+        } catch (error) {
+          reject(error);
+        }
+      }, 100);
+    });
+  }
+
+  private speakChunksNative(chunks: string[], settings: VoiceSettings, resolve: () => void, reject: (error: any) => void): void {
+    if (chunks.length === 0) {
+      resolve();
       return;
     }
 
+    const [first, ...rest] = chunks;
+    const utterance = new SpeechSynthesisUtterance(first);
+    this.configureVoice(utterance, settings);
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
+    utterance.volume = settings.volume;
+
+    utterance.onend = () => {
+      this.speakChunksNative(rest, settings, resolve, reject);
+    };
+
+    utterance.onerror = (event) => {
+      if (event.error === 'canceled' || event.error === 'interrupted') {
+        resolve();
+      } else {
+        reject(new Error(`Error de voz: ${event.error}`));
+      }
+    };
+
+    this.synth.speak(utterance);
+  }
+
+  // ============ MOTOR PREMIUM (VOCES NEURONALES) ============
+
+  private async speakWithPremium(text: string, voice: VoiceInfo, settings: VoiceSettings): Promise<void> {
+    const maxChars = voice.uri === 'premium:google:es' ? 150 : 300;
+    const chunks = this.splitTextIntoChunks(text, maxChars);
+    if (chunks.length === 0) return;
+
+    // La reproducción por <audio> cambia el tono al modificar playbackRate;
+    // se limita a un rango natural para no sonar robótica.
+    const rate = Math.min(1.2, Math.max(0.8, settings.rate || 1.0));
+    const volume = Math.max(0, Math.min(1, settings.volume || 1.0));
+
+    const sequence: { url: string; rate: number; volume: number }[] = [];
+    for (const chunk of chunks) {
+      const url = this.buildPremiumUrl(voice.uri, chunk);
+      if (url) sequence.push({ url, rate, volume });
+    }
+
+    if (sequence.length === 0) {
+      throw new Error('Voz premium no válida');
+    }
+
+    await this.playAudioSequence(sequence);
+  }
+
+  private buildPremiumUrl(voiceId: string, text: string): string | null {
+    const q = encodeURIComponent(text);
+
+    if (voiceId.startsWith('premium:edge:')) {
+      const edgeVoice = voiceId.replace('premium:edge:', '');
+      return `https://tts.cyzon.us/tts?voice=${encodeURIComponent(edgeVoice)}&text=${q}`;
+    }
+
+    if (voiceId === 'premium:google:es') {
+      return `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=es&q=${q}`;
+    }
+
+    return null;
+  }
+
+  private playAudioSequence(sequence: { url: string; rate: number; volume: number }[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let index = 0;
+
+      const playNext = () => {
+        if (this.speechCancelled) {
+          this.activeAudio = null;
+          resolve();
+          return;
+        }
+
+        if (index >= sequence.length) {
+          this.activeAudio = null;
+          resolve();
+          return;
+        }
+
+        const item = sequence[index];
+        index += 1;
+
+        const audio = new Audio();
+        audio.preload = 'auto';
+        audio.src = item.url;
+        audio.defaultPlaybackRate = item.rate;
+        audio.playbackRate = item.rate;
+        audio.volume = item.volume;
+        this.activeAudio = audio;
+
+        let settled = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
+
+        const finish = (error?: Error) => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timer);
+          audio.onended = null;
+          audio.onerror = null;
+          audio.onstalled = null;
+          if (this.speechCancelled) {
+            this.activeAudio = null;
+            resolve();
+          } else if (error) {
+            this.activeAudio = null;
+            reject(error);
+          } else {
+            playNext();
+          }
+        };
+
+        timer = setTimeout(() => finish(new Error('Tiempo de espera agotado al reproducir la voz')), 20000);
+
+        audio.onended = () => finish();
+        audio.onerror = () => finish(new Error('No se pudo reproducir la voz premium'));
+        audio.onstalled = () => { /* seguir esperando datos */ };
+
+        const playPromise = audio.play();
+        if (playPromise) {
+          playPromise.catch(() => finish(new Error('No se pudo iniciar la reproducción de voz')));
+        }
+      };
+
+      playNext();
+    });
+  }
+
+  private splitTextIntoChunks(text: string, maxChars: number): string[] {
+    const sentences = text.match(/[^.!?]+[.!?]*\s*/g) || [text];
+    const chunks: string[] = [];
+    let current = '';
+
+    for (const sentence of sentences) {
+      if ((current + sentence).trim().length > maxChars) {
+        if (current.trim()) chunks.push(current.trim());
+        let remaining = sentence;
+        while (remaining.length > maxChars) {
+          chunks.push(remaining.slice(0, maxChars).trim());
+          remaining = remaining.slice(maxChars);
+        }
+        current = remaining;
+      } else {
+        current += sentence;
+      }
+    }
+
+    if (current.trim()) chunks.push(current.trim());
+    return chunks;
+  }
+
+  public cancelSpeech(): void {
+    this.speechCancelled = true;
     if (this.synth.speaking) {
       this.synth.cancel();
     }
-
-    setTimeout(() => {
+    if (this.activeAudio) {
+      const audio = this.activeAudio;
+      audio.onended = null;
+      audio.onerror = null;
+      audio.onstalled = null;
       try {
-        const settings = { ...this.currentSettings, ...options };
-        
-        // 🔴 AGREGAR ESTO: Limpiar el texto para voz
-        const cleanText = this.cleanTextForSpeech(text);
-        
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        this.configureVoice(utterance, settings);
-        utterance.rate = settings.rate;
-        utterance.pitch = settings.pitch;
-        utterance.volume = settings.volume;
-
-        utterance.onend = () => {
-          resolve();
-        };
-
-        utterance.onerror = (event) => {
-          reject(new Error(`Error de voz: ${event.error}`));
-        };
-
-        this.synth.speak(utterance);
-
-      } catch (error) {
-        reject(error);
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      } catch {
+        // ignorar
       }
-    }, 100);
-  });
-}
+      this.activeAudio = null;
+    }
+  }
 
 // 🔴 AGREGAR ESTA NUEVA FUNCIÓN PARA LIMPIAR TEXTO
 private cleanTextForSpeech(text: string): string {
@@ -1104,12 +1457,12 @@ case 'show_summary':
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '');
       
-      // Buscar deudas de este cliente
+// Buscar deudas de este cliente
       const clientDebts = debts.filter((d: any) => {
-        const debtClientName = (d.clientname || '').toLowerCase()
+        const debtClientName = (d.clientName || '').toLowerCase()
           .normalize('NFD')
           .replace(/[\u0300-\u036f]/g, '');
-        return debtClientName.includes(normalizedPerson) && !d.ispaid;
+        return debtClientName.includes(normalizedPerson) && !d.isPaid;
       });
       
       console.log('🔍 handleAddPayment - deudas del cliente:', clientDebts);
@@ -1663,6 +2016,7 @@ private async handleOverdueDebtsQuery(parsed: ParsedCommand): Promise<any> {
       total: voices.length,
       real: voices.filter(v => !v.isVirtual).length,
       virtual: voices.filter(v => v.isVirtual).length,
+      premium: voices.filter(v => v.engine === 'premium').length,
       spanish: voices.filter(v => v.isSpanish).length,
       male: voices.filter(v => v.gender === 'male').length,
       female: voices.filter(v => v.gender === 'female').length

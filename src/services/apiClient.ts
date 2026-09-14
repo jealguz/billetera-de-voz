@@ -9,6 +9,93 @@ export function setAuthToken(token: string | null) {
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://wallet-voice-backend.onrender.com';
 
+// PostgreSQL dobla los identificadores sin comillas a minúsculas, así que el backend
+// devuelve las columnas como "paidamount", "ispaid", "createdat", etc. Aquí normalizamos
+// cada respuesta a la forma camelCase que todo el frontend espera (paidAmount, isPaid…).
+const FIELD_ALIASES: Record<string, string> = {
+  userid: 'userId',
+  walletid: 'walletId',
+  debtid: 'debtId',
+  clientid: 'clientId',
+  createdat: 'createdAt',
+  updatedat: 'updatedAt',
+  duedate: 'dueDate',
+  ispaid: 'isPaid',
+  clientname: 'clientName',
+  paidamount: 'paidAmount',
+  totalclients: 'totalClients',
+  totalowed: 'totalOwed',
+  pendingdebts: 'pendingDebts',
+  paymentdate: 'paymentDate',
+  exportedat: 'exportedAt',
+  useremail: 'userEmail',
+  debtdescription: 'debtDescription',
+  totaldebt: 'totalDebt',
+  totalpaid: 'totalPaid',
+  paymentid: 'paymentId',
+};
+
+// Las columnas NUMERIC de Postgres llegan como string ("100") ; aquí se convierten a number.
+const NUMERIC_KEYS = new Set<string>([
+  'id',
+  'userId',
+  'walletId',
+  'clientId',
+  'debtId',
+  'amount',
+  'balance',
+  'paidAmount',
+  'totalOwed',
+  'totalOwing',
+  'totalClients',
+  'pendingDebts',
+  'pendingCount',
+  'paidCount',
+  'netBalance',
+  'count',
+  'total',
+  'totalDebt',
+  'totalPaid',
+  'daysOverdue',
+]);
+
+type JsonObject = Record<string, unknown>;
+
+function camelizeKey(key: string): string {
+  const lower = (key || '').toLowerCase();
+  if (FIELD_ALIASES[lower]) return FIELD_ALIASES[lower];
+  if (lower.includes('_')) {
+    return lower.replace(/_([a-z0-9])/g, (_match: string, c: string) => c.toUpperCase());
+  }
+  return key;
+}
+
+function toNumber(value: unknown): unknown {
+  if (typeof value === 'string' && value.trim() !== '') {
+    const num = Number(value);
+    if (!Number.isNaN(num)) return num;
+  }
+  return value;
+}
+
+export function normalizeResponse(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeResponse(item));
+  }
+  if (value !== null && typeof value === 'object') {
+    const source = value as JsonObject;
+    const result: JsonObject = {};
+    for (const key of Object.keys(source)) {
+      const normalizedKey = camelizeKey(key);
+      result[normalizedKey] = NUMERIC_KEYS.has(normalizedKey)
+        ? toNumber(source[key])
+        : normalizeResponse(source[key]);
+    }
+    return result;
+  }
+  return value;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -40,7 +127,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   // If there is no content, return undefined
   const contentType = res.headers.get('content-type') || ''
   if (contentType.includes('application/json')) {
-    return (await res.json()) as T
+    return normalizeResponse(await res.json()) as T
   }
   return undefined as unknown as T
 }

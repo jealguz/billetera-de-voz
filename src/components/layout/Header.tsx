@@ -159,9 +159,7 @@ const Header: React.FC = () => {
 
   // Función para detener todos los previews
   const stopAllPreviews = () => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
+    enhancedVoiceService.cancelSpeech();
     setIsPreviewing(false);
     setCurrentlyPlaying(null);
   };
@@ -409,6 +407,7 @@ const Header: React.FC = () => {
   const spanishVoicesCount = systemVoices.length;
   const realVoicesCount = voiceStats.real;
   const virtualVoicesCount = voiceStats.virtual;
+  const premiumVoicesCount = voiceStats.premium;
 
   return (
     <header className="sticky top-0 z-10 bg-white p-3 sm:p-4 shadow-sm">
@@ -783,7 +782,7 @@ const Header: React.FC = () => {
                       <span className="truncate">Sistema de Voces</span>
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-600">
-                      {realVoicesCount} bases × {personalities.length} estilos = {spanishVoicesCount} opciones
+                      {realVoicesCount} bases · {virtualVoicesCount} variantes{premiumVoicesCount > 0 ? ` · ${premiumVoicesCount} premium` : ''}
                     </p>
                   </div>
                   <div className="flex items-center gap-1 sm:gap-2">
@@ -1065,6 +1064,11 @@ const Header: React.FC = () => {
                                   {voice.default && !voice.isVirtual && (
                                     <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded self-start sm:self-center">
                                       Predeterminada
+                                    </span>
+                                  )}
+                                  {voice.engine === 'premium' && (
+                                    <span className="text-xs bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 px-2 py-1 rounded self-start sm:self-center">
+                                      ✦ Premium
                                     </span>
                                   )}
                                   {voice.isVirtual && voice.personality && (

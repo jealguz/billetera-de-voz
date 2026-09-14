@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Volume2, Copy, Check } from 'lucide-react';
 import Button from '../ui/Button';
 import Card from '../ui/Card';
+import { enhancedVoiceService } from '../../services/enhancedVoiceService';
 
 interface VoiceResponseProps {
   text: string;
@@ -17,26 +18,18 @@ const VoiceResponse: React.FC<VoiceResponseProps> = ({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const speakText = () => {
-    if ('speechSynthesis' in window) {
-      setIsSpeaking(true);
-      
-      // Cancelar cualquier habla previa
-      speechSynthesis.cancel();
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'es-ES';
-      utterance.rate = 1;
-      utterance.pitch = 1;
-      
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
-      
-      speechSynthesis.speak(utterance);
-      
-      if (onSpeak) {
-        onSpeak();
-      }
+  const speakText = async () => {
+    setIsSpeaking(true);
+    try {
+      await enhancedVoiceService.speak(text);
+    } catch (error) {
+      console.error('Error al hablar respuesta:', error);
+    } finally {
+      setIsSpeaking(false);
+    }
+
+    if (onSpeak) {
+      onSpeak();
     }
   };
 
